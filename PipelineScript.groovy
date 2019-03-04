@@ -70,7 +70,7 @@ pipeline {
       KUBERNETES_APP_SVC_GROUP='default'
    }
    parameters {
-      choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance', description: 'Select target database environment')
+      choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance', defaultValue: 'qa', description: 'Select target database environment')
       choice(name: 'DatabaseOperation',  choices: 'clean\nrebuild', description: 'Clean: try to clear user data without applying any structure changes\nRebuild: Reset database to initial state. This Operation will drop database and rebuild from scratch')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndata-exporter\ndevice-management\nfraud-consultant\nhousekeeping\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-action\nrule-engine\nsof-bank\nsof-card\nsof-cash\nspi-engine\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'Above services will be skipped')
       string(name: 'DbMasterUser', defaultValue: 'eq_db', description: 'Database master account which has DDL permission')
