@@ -105,8 +105,8 @@ pipeline {
                git(url: "${env.TOOL_REPO_URL}", credentialsId: "equator-cicd-bitbucket-credential-secret")
                script {
                   // Test provided Database credential
-                  // def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-                  def dbUrl = "10.14.255.3:3306"
+                  def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+                  // def dbUrl = "10.14.255.3:3306"
                   def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql 'select 1;' > /dev/null; set -x", returnStatus: true)
                   if (dbTestStatus != 0) {
                      echo '######### ERROR: Invalid DB username password #########'
@@ -144,8 +144,8 @@ pipeline {
          }
          steps {
             script {
-               // def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-               def dbUrl = "10.14.255.3:3306"
+               def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+               // def dbUrl = "10.14.255.3:3306"
                dir ("${env.APP_CONFIG_PATH}") {
                   def skipList = []
                   env.SkipServices.split('\n').each { item ->
