@@ -1,6 +1,6 @@
-def replaceSecrets(src, keys, secretMap){
+def replaceSecrets(src, keys, secretMap) {
    if(src ==null) return null
-   if(keys != null && secretMap != null){
+   if(keys != null && secretMap != null) {
       keys.each { k ->
          def val = secretMap.get(k, null)
          def tmp = src.replaceAll("#${k}#", val)
@@ -8,6 +8,14 @@ def replaceSecrets(src, keys, secretMap){
       }
    }
    return src
+}
+
+def extractVersionInfo(str) {
+   def match = (str =~ /.*goose: version\s(\d+)$/)
+    if (match.find()) {
+        return match.group(1)
+    }
+    return "unavailable"
 }
 
 def skipRemainingStages = false
@@ -53,6 +61,7 @@ def vaultCredMap = [
    performance: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJlcXVhdG9yLWRlZmF1bHQtcGVyZm9ybWFuY2UiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlY3JldC5uYW1lIjoiYWNtLWRlcGxveWVyLXRva2VuLTk5bGdrIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFjbS1kZXBsb3llciIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjY2OWQxNTNiLTdlYTctMTFlOC05M2IyLTAwNTA1NjliMGE3MCIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDplcXVhdG9yLWRlZmF1bHQtcGVyZm9ybWFuY2U6YWNtLWRlcGxveWVyIn0.UTUYq8Jrb0gCT2k2f8k2vHGO5j9X2ms3hvfoUSakzoAegmQNCzzxGDun3TiGKP-0qPjwf82AdMsJO3pShOLqxj2mpmuT8-0wCFRjdHrmoC5TPZaRCgPWmcE2D7ePhUaMBbiieSiKQ0Opm83FWYrQ9XN0_kYiw1Fkj4XcuhSxkHYWpGrxgupBoLHvqpZwvFroWIF4bkx4mTH9t3683g0-VT9AaNQCPcFWGiGaGV-XbUlDH8W9vLLBFhq3cmqdoUuQ7qbjpOgNw_rRIdzqIwKLu5iYS9eWGKrzkabx1GXcs2AHGKJDL4G1BV99194lyrvIeSgZpHIb1pRrZrS0KkGShg',
 ]
 def unprocessedSvcs = []
+def versionChanges = []
 
 pipeline {
    agent any
@@ -153,11 +162,6 @@ pipeline {
                         skipList << item.trim()
                      }
                   }
-                  svcs.each { el -> 
-                     def dbName = el.get("dbName", null)
-                     sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
-                  }
-                  
                   // Get services version
                   svcs.each { el ->
                      def svcName = el.get("svcName", null)
@@ -166,6 +170,7 @@ pipeline {
                         if (skipList.contains(svcName) || dbName == null) {
                            echo "######### INFO: Service ${svcName} is either skipped by request or has no database. No operation needed. #########"
                         } else {
+                           def dbVersionInfo = [db_name: dbName, old_version: null, new_version: null]
                            sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
                            if (fileExists("${svcName}-info.json")) {
                               def buildInfo = readJSON(file: "${svcName}-info.json")
@@ -187,11 +192,16 @@ pipeline {
                                     keys.each { k ->
                                        keyList << k.get('key')
                                     }
+                                    // Store existing version
+                                    def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version > /dev/null; set -x", returnStdout: true).trim()
+                                    dbVersionInfo.old_version = extractVersionInfo(oldVer)
+
                                     dir ("create-databases") {
                                        def files = findFiles(glob: '*.sql')
                                        files.each { f ->
                                           def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
                                           sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
+                                          sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
                                           sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
                                        }
                                     }
@@ -204,6 +214,9 @@ pipeline {
                                     }
                                     // Execute goose up migration
                                     def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
+                                    def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version > /dev/null; set -x", returnStdout: true).trim()
+                                    dbVersionInfo.new_version = extractVersionInfo(newVer)
+                                    versionChanges << dbVersionInfo
                                     if (migrationStatus != 0) {
                                        unprocessedSvcs << "${svcName}"
                                        currentBuild.result='UNSTABLE'
@@ -228,12 +241,26 @@ pipeline {
    post {
       success {
          echo '######### BUILD SUCCESS! #########'
+         script {
+            def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
+            versionChanges.each { i ->
+               msgOut = msgOut + String.format( "| %1$-39s| %2$-16| %3$-16|\n", i.db_name, i.old_version, i.new_version)
+            }
+            echo msgOut
+         }
       }
       failure {
          echo '######### BUILD FAILED! #########'
       }
       unstable {
          echo '######### BUILD UNSTABLE #########'
+         script {
+            def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
+            versionChanges.each { i ->
+               msgOut = msgOut + String.format( "| %1$-39s| %2$-16| %3$-16|\n", i.db_name, i.old_version, i.new_version)
+            }
+            echo msgOut
+         }
          echo 'the following databases haven\'t been processed'
          script {
             def unprocessedLst = ""
