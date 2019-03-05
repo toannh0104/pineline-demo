@@ -153,6 +153,11 @@ pipeline {
                         skipList << item.trim()
                      }
                   }
+                  svcs.each { el -> 
+                     def dbName = el.get("dbName", null)
+                     sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
+                  }
+                  
                   // Get services version
                   svcs.each { el ->
                      def svcName = el.get("svcName", null)
@@ -187,7 +192,6 @@ pipeline {
                                        files.each { f ->
                                           def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
                                           sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
-                                          sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
                                           sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
                                        }
                                     }
