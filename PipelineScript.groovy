@@ -11,9 +11,7 @@ def replaceSecrets(src, keys, secretMap) {
 }
 
 def extractVersionInfo(str) {
-   echo str
    def i = str.indexOf("goose: version ")
-   echo "$i"
    if(i != -1) {
       return str.substring(i+15)
    }
@@ -195,6 +193,7 @@ pipeline {
                                     }
                                     // Store existing version
                                     def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version; set -x", returnStdout: true).trim()
+                                    echo "Old Verion: ${oldVer}"
                                     dbVersionInfo.old_version = extractVersionInfo(oldVer)
 
                                     dir ("create-databases") {
