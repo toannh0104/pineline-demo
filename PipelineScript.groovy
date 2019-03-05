@@ -107,7 +107,7 @@ pipeline {
                   // Test provided Database credential
                   //def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
                   def dbUrl = "10.14.255.3:3306"
-                  def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' ping > /dev/null; set -x", returnStatus: true)
+                  def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                   if (dbTestStatus != 0) {
                      echo '######### ERROR: Invalid DB username password #########'
                      currentBuild.result = 'FAILED'
@@ -199,7 +199,7 @@ pipeline {
                                        writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                     }
                                     // Execute goose up migration
-                                    def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' up > /dev/null; set -x", returnStatus: true)
+                                    def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
                                     if (migrationStatus != 0) {
                                        unprocessedSvcs << "${svcName}"
                                        currentBuild.result='UNSTABLE'
