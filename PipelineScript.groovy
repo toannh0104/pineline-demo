@@ -107,7 +107,7 @@ pipeline {
                   // Test provided Database credential
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
                   // def dbUrl = "10.14.255.3:3306"
-                  def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql 'select 1;' > /dev/null; set -x", returnStatus: true)
+                  def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' ping > /dev/null; set -x", returnStatus: true)
                   if (dbTestStatus != 0) {
                      echo '######### ERROR: Invalid DB username password #########'
                      currentBuild.result = 'FAILED'
@@ -185,7 +185,7 @@ pipeline {
                                     dir ("create-databases") {
                                        def files = findFiles(glob: '*.sql')
                                        files.each { f ->
-                                          def sqlDB = readFile(file: "${f.name}")
+                                          def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
                                           sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
                                           sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
                                           sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
@@ -194,12 +194,12 @@ pipeline {
                                     // Find and replace secrets
                                     def sqlFiles = findFiles(glob: '*.sql')
                                     sqlFiles.each { f ->
-                                       def sql = readFile(file: "${f.name}")
+                                       def sql = readFile(file: "${f.name}", encoding: "utf-8")
                                        sql = replaceSecrets(sql, keyList, vaultData)
-                                       writeFile (file: "${f.name}", text: sql)
+                                       writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                     }
                                     // Execute goose up migration
-                                    def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' up > /dev/null; set -x", returnStatus: true)
+                                    def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?useUnicode=yes&characterEncoding=UTF-8' up > /dev/null; set -x", returnStatus: true)
                                     if (migrationStatus != 0) {
                                        unprocessedSvcs << "${svcName}"
                                        currentBuild.result='UNSTABLE'
