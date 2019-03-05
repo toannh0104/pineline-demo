@@ -199,7 +199,7 @@ pipeline {
                                        writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                     }
                                     // Execute goose up migration
-                                    def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?useUnicode=yes&characterEncoding=UTF-8' up > /dev/null; set -x", returnStatus: true)
+                                    def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' up > /dev/null; set -x", returnStatus: true)
                                     if (migrationStatus != 0) {
                                        unprocessedSvcs << "${svcName}"
                                        currentBuild.result='UNSTABLE'
