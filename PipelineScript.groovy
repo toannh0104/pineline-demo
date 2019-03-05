@@ -243,7 +243,7 @@ pipeline {
          script {
             def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
             versionChanges.each { i ->
-               msgOut = msgOut + String.format( "| %1$-39s| %2$-16| %3$-16|\n", i.db_name, i.old_version, i.new_version)
+               msgOut = msgOut + String.format( "| %-39s| %-16d| %-16d|\n", i.db_name, i.old_version, i.new_version)
             }
             echo msgOut
          }
@@ -256,7 +256,7 @@ pipeline {
          script {
             def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
             versionChanges.each { i ->
-               msgOut = msgOut + String.format( "| %1$-39s| %2$-16| %3$-16|\n", i.db_name, i.old_version, i.new_version)
+               msgOut = msgOut + String.format( "| %-39s| %-16d| %-16d|\n", i.db_name, i.old_version, i.new_version)
             }
             echo msgOut
          }
