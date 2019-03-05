@@ -113,8 +113,8 @@ pipeline {
                git(url: "${env.TOOL_REPO_URL}", credentialsId: "equator-cicd-bitbucket-credential-secret")
                script {
                   // Test provided Database credential
-                  //def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-                  def dbUrl = "10.14.255.3:3306"
+                  def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+                  // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
                   def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                   if (dbTestStatus != 0) {
                      echo '######### ERROR: Invalid DB username password #########'
@@ -152,8 +152,8 @@ pipeline {
          }
          steps {
             script {
-               //def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-               def dbUrl = "10.14.255.3:3306"
+               def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+               // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
                dir ("${env.APP_CONFIG_PATH}") {
                   def skipList = []
                   env.SkipServices.split('\n').each { item ->
@@ -245,7 +245,7 @@ pipeline {
             try{
                def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                versionChanges.each { i ->
-                  msgOut = msgOut + String.format( "| %-39s| %16s| %16s|\n", i.db_name, i.old_version, i.new_version)
+                  msgOut = msgOut + String.format( "| %-39s|%16s |%16s |\n", i.db_name, i.old_version, i.new_version)
                }
                echo msgOut
             }catch(e){
@@ -262,7 +262,7 @@ pipeline {
             try {
                def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                versionChanges.each { i ->
-                  msgOut = msgOut + String.format( "| %-39s| %16s| %16s|\n", i.db_name, i.old_version, i.new_version)
+                  msgOut = msgOut + String.format( "| %-39s|%16s |%16s |\n", i.db_name, i.old_version, i.new_version)
                }
                echo msgOut
                
