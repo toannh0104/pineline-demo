@@ -80,7 +80,6 @@ pipeline {
    }
    parameters {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance', description: 'Select target database environment')
-      choice(name: 'DatabaseOperation',  choices: 'clean\nrebuild', description: 'Clean: try to clear user data without applying any structure changes\nRebuild: Reset database to initial state. This Operation will drop database and rebuild from scratch')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndata-exporter\ndevice-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'Above services will be skipped')
       string(name: 'DbMasterUser', defaultValue: 'eq_db', description: 'Database master account which has DDL permission')
       password(name: 'DbMasterPassword', defaultValue: 'P@ss99W0rd', description: 'Database master account password')
