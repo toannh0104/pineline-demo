@@ -11,10 +11,10 @@ def replaceSecrets(src, keys, secretMap) {
 }
 
 def extractVersionInfo(str) {
-   def match = (str =~ /.*goose: version\s(\d+)$/)
-    if (match.find()) {
-        return match.group(1)
-    }
+   def i = str.indexOf("goose: version ")
+   if(i != -1) {
+      return str.substring(i+15)
+   }
     return "unavailable"
 }
 
