@@ -241,11 +241,15 @@ pipeline {
       success {
          echo '######### BUILD SUCCESS! #########'
          script {
-            def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
-            versionChanges.each { i ->
-               msgOut = msgOut + String.format( "| %-39s| %-16d| %-16d|\n", i.db_name, i.old_version, i.new_version)
+            try{
+               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
+               versionChanges.each { i ->
+                  msgOut = msgOut + String.format( "| %-39s| %-16s| %-16s|\n", i.db_name, i.old_version, i.new_version)
+               }
+               echo msgOut
+            }catch(e){
+               echo "${e}"
             }
-            echo msgOut
          }
       }
       failure {
@@ -254,22 +258,24 @@ pipeline {
       unstable {
          echo '######### BUILD UNSTABLE #########'
          script {
-            def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
-            versionChanges.each { i ->
-               msgOut = msgOut + String.format( "| %-39s| %-16d| %-16d|\n", i.db_name, i.old_version, i.new_version)
-            }
-            echo msgOut
-         }
-         echo 'the following databases haven\'t been processed'
-         script {
-            def unprocessedLst = ""
-            unprocessedSvcs.each { i ->
-               def dbErr = "${i}_${env.DatabaseEnvironment}"
-               unprocessedLst = unprocessedLst + "\n${dbErr.replace("-", "_")}"
-            }
-            if(unprocessedLst?.trim()){
-               echo unprocessedLst
-            }
+            try {
+               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
+               versionChanges.each { i ->
+                  msgOut = msgOut + String.format( "| %-39s| %-16s| %-16s|\n", i.db_name, i.old_version, i.new_version)
+               }
+               echo msgOut
+               
+               def unprocessedLst = "the following databases haven\'t been processed\n"
+               unprocessedSvcs.each { i ->
+                  def dbErr = "${i}_${env.DatabaseEnvironment}"
+                  unprocessedLst = unprocessedLst + "\n${dbErr.replace("-", "_")}"
+               }
+               if(unprocessedLst?.trim()){
+                  echo unprocessedLst
+               }
+            } catch(e) {
+               echo "${e}"
+            }   
          }
       }
    }
