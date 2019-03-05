@@ -194,7 +194,7 @@ pipeline {
                                        keyList << k.get('key')
                                     }
                                     // Store existing version
-                                    def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version > /dev/null; set -x", returnStdout: true).trim()
+                                    def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version; set -x", returnStdout: true).trim()
                                     dbVersionInfo.old_version = extractVersionInfo(oldVer)
 
                                     dir ("create-databases") {
@@ -215,7 +215,7 @@ pipeline {
                                     }
                                     // Execute goose up migration
                                     def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
-                                    def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version > /dev/null; set -x", returnStdout: true).trim()
+                                    def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version; set -x", returnStdout: true).trim()
                                     dbVersionInfo.new_version = extractVersionInfo(newVer)
                                     versionChanges << dbVersionInfo
                                     if (migrationStatus != 0) {
