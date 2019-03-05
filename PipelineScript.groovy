@@ -11,11 +11,13 @@ def replaceSecrets(src, keys, secretMap) {
 }
 
 def extractVersionInfo(str) {
+   echo str
    def i = str.indexOf("goose: version ")
+   echo i
    if(i != -1) {
       return str.substring(i+15)
    }
-    return "unavailable"
+   return "unavailable"
 }
 
 def skipRemainingStages = false
@@ -242,7 +244,7 @@ pipeline {
          echo '######### BUILD SUCCESS! #########'
          script {
             try{
-               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
+               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                versionChanges.each { i ->
                   msgOut = msgOut + String.format( "| %-39s| %-16s| %-16s|\n", i.db_name, i.old_version, i.new_version)
                }
@@ -259,7 +261,7 @@ pipeline {
          echo '######### BUILD UNSTABLE #########'
          script {
             try {
-               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n|----------------------------------------------------------------------------|\n"
+               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                versionChanges.each { i ->
                   msgOut = msgOut + String.format( "| %-39s| %-16s| %-16s|\n", i.db_name, i.old_version, i.new_version)
                }
