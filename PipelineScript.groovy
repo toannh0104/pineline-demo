@@ -13,7 +13,7 @@ def replaceSecrets(src, keys, secretMap) {
 def extractVersionInfo(str) {
    echo str
    def i = str.indexOf("goose: version ")
-   echo i
+   echo "$i"
    if(i != -1) {
       return str.substring(i+15)
    }
