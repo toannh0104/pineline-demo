@@ -26,7 +26,7 @@ def svcs = [
       [svcName: 'data-exporter', dbName: 'data_exporter'],
       [svcName: 'device-management', dbName: 'device_management'],
       [svcName: 'fraud-consultant', dbName: 'fraud_consultant'],
-      [svcName: 'housekeeping', dbName: null],
+      // [svcName: 'housekeeping', dbName: null],
       [svcName: 'inventory', dbName: 'inventory'],
       [svcName: 'loyalty', dbName: 'loyalty'],
       [svcName: 'otp-management', dbName: 'otp_management'],
@@ -36,12 +36,12 @@ def svcs = [
       [svcName: 'prepaid-card', dbName: 'prepaid_card'],
       [svcName: 'reconciler', dbName: 'reconciler'],
       [svcName: 'report', dbName: 'report'],
-      [svcName: 'rule-action', dbName: null],
+      // [svcName: 'rule-action', dbName: null],
       [svcName: 'rule-engine', dbName: 'rule_engine'],
       [svcName: 'sof-bank', dbName: 'sof_bank'],
       [svcName: 'sof-card', dbName: 'sof_card'],
       [svcName: 'sof-cash', dbName: 'sof_cash'],
-      [svcName: 'spi-engine', dbName: null],
+      // [svcName: 'spi-engine', dbName: null],
       [svcName: 'system-user', dbName: 'system_user'],
       [svcName: 'trust-management', dbName: 'trust_management'],
       [svcName: 'voucher', dbName: 'voucher'],
@@ -72,7 +72,7 @@ pipeline {
    parameters {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance', description: 'Select target database environment')
       choice(name: 'DatabaseOperation',  choices: 'clean\nrebuild', description: 'Clean: try to clear user data without applying any structure changes\nRebuild: Reset database to initial state. This Operation will drop database and rebuild from scratch')
-      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndata-exporter\ndevice-management\nfraud-consultant\nhousekeeping\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-action\nrule-engine\nsof-bank\nsof-card\nsof-cash\nspi-engine\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'Above services will be skipped')
+      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndata-exporter\ndevice-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'Above services will be skipped')
       string(name: 'DbMasterUser', defaultValue: 'eq_db', description: 'Database master account which has DDL permission')
       password(name: 'DbMasterPassword', defaultValue: 'P@ss99W0rd', description: 'Database master account password')
    }
@@ -105,8 +105,8 @@ pipeline {
                git(url: "${env.TOOL_REPO_URL}", credentialsId: "equator-cicd-bitbucket-credential-secret")
                script {
                   // Test provided Database credential
-                  def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-                  // def dbUrl = "10.14.255.3:3306"
+                  //def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+                  def dbUrl = "10.14.255.3:3306"
                   def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${env.DbMasterUser}:${env.DbMasterPassword}@tcp(${dbUrl})/' ping > /dev/null; set -x", returnStatus: true)
                   if (dbTestStatus != 0) {
                      echo '######### ERROR: Invalid DB username password #########'
@@ -144,8 +144,8 @@ pipeline {
          }
          steps {
             script {
-               def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-               // def dbUrl = "10.14.255.3:3306"
+               //def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+               def dbUrl = "10.14.255.3:3306"
                dir ("${env.APP_CONFIG_PATH}") {
                   def skipList = []
                   env.SkipServices.split('\n').each { item ->
