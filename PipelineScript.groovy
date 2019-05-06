@@ -31,8 +31,9 @@ def svcs = [
       [svcName: 'centralize-configuration', dbName: 'centralize_configuration'],
       [svcName: 'channel-adapter', dbName: 'channel_adapter'],
       [svcName: 'customer', dbName: 'customer'],
-      [svcName: 'data-exporter', dbName: 'data_exporter'],
+      // [svcName: 'data-exporter', dbName: 'data_exporter'],
       [svcName: 'device-management', dbName: 'device_management'],
+      [svcName: 'file-management', dbName: 'file_management'],
       [svcName: 'fraud-consultant', dbName: 'fraud_consultant'],
       // [svcName: 'housekeeping', dbName: null],
       [svcName: 'inventory', dbName: 'inventory'],
@@ -75,7 +76,7 @@ pipeline {
    }
    parameters {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
-      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndata-exporter\ndevice-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'Above services will be skipped')
+      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'Above services will be skipped')
    }
    options {
       buildDiscarder(logRotator(numToKeepStr:'5'))
