@@ -124,7 +124,7 @@ pipeline {
             script {
                def eqVaultCred = "eqVaultCred${env.DatabaseEnvironment}"
                // Prepare for Vault fetching
-               withCredentials([string(credentialsId: $eqVaultCred, variable: 'VAULT_TOKEN')]) {
+               withCredentials([string(credentialsId: "$eqVaultCred", variable: 'VAULT_TOKEN')]) {
                   try{
                      def VAULT_LEADER_RAW = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_URL}; set -x;", returnStdout: true).trim()
                      vaultLeaderInfo = readJSON(text: "${VAULT_LEADER_RAW}")
