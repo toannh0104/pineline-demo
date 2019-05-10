@@ -88,12 +88,8 @@ pipeline {
    stages {
       stage('Prepare Information') {
          steps {
-            sh("ls -al .")
-            sh("ls -al ${WORKSPACE}")
-            dir("${WORKSPACE}") {
-               sh ("git fetch --all -f")
-            }
-
+            sh("ls -al ${WORKSPACE}/${env.TOOL_HOME_PATH}")
+            
             dir ("${env.APP_CONFIG_PATH}") {
                deleteDir()
             }
@@ -111,6 +107,7 @@ pipeline {
             }
 
             dir("${env.TOOL_HOME_PATH}") {
+               sh ("git fetch --all -f")
                script {
                   // Test provided Database credential
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
