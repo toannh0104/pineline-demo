@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 def replaceSecrets(src, keys, secretMap) {
    if(src ==null) return null
    if(keys != null && secretMap != null) {
@@ -104,7 +106,7 @@ pipeline {
             }
 
             dir("${env.TOOL_HOME_PATH}") {
-               git(url: "${env.TOOL_REPO_URL}", credentialsId: "equator-cicd-bitbucket-credential-secret")
+               git(url: "${env.TOOL_REPO_URL}")
                script {
                   // Test provided Database credential
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
