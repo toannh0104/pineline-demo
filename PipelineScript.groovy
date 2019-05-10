@@ -88,7 +88,10 @@ pipeline {
    stages {
       stage('Prepare Information') {
          steps {
-            sh ("git fetch --all -f")
+            dir("${WORKSPACE}") {
+               sh ("git fetch --all -f")
+            }
+            
             dir ("${env.APP_CONFIG_PATH}") {
                deleteDir()
             }
@@ -111,7 +114,6 @@ pipeline {
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
                   // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
                   withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
-                     
                      def dbTestStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                      if (dbTestStatus != 0) {
                         echo '######### ERROR: Invalid DB username password #########'
