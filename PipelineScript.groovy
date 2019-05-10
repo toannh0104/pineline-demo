@@ -110,8 +110,10 @@ pipeline {
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
                   // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
                   withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
-                     echo "$DbCred"
-                     def dbTestStatus = sh (script: "set +x; ./goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
+                     sh ("ls -al .")
+                     sh ("ls -al ${WORKSPACE}")
+                     sh ("ls -al ${WORKSPACE}/${env.TOOL_HOME_PATH}")
+                     def dbTestStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                      if (dbTestStatus != 0) {
                         echo '######### ERROR: Invalid DB username password #########'
                         currentBuild.result = 'FAILED'
