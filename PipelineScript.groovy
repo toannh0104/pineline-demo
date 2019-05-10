@@ -106,7 +106,7 @@ pipeline {
             }
 
             dir("${env.TOOL_HOME_PATH}") {
-               git(url: "${env.TOOL_REPO_URL}")
+               //git(url: "${env.TOOL_REPO_URL}")
                script {
                   // Test provided Database credential
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
