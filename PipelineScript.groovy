@@ -66,7 +66,6 @@ pipeline {
    // Environment
    environment {
       // Global Variable Declartion
-      TOOL_REPO_URL='https://bitbucket.org/ascendcorp/ami-equator-openshift-db-tool.git'
       TOOL_HOME_PATH='tools'
       S3_APPCFG_ENDPOINT='https://s3-ap-southeast-1.amazonaws.com'
       S3_APPCFG_REGION='ap-southeast-1'
@@ -106,7 +105,6 @@ pipeline {
             }
 
             dir("${env.TOOL_HOME_PATH}") {
-               //git(url: "${env.TOOL_REPO_URL}")
                script {
                   // Test provided Database credential
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
