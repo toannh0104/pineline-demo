@@ -112,7 +112,7 @@ pipeline {
                   withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                      sh ("ls -al .")
                      sh ("ls -al ${WORKSPACE}")
-                     sh ("ls -al ${WORKSPACE}/${env.TOOL_HOME_PATH}")
+                     sh ("ls -al ${WORKSPACE}/${env.TOOL_HOME_PATH}@tmp")
                      def dbTestStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                      if (dbTestStatus != 0) {
                         echo '######### ERROR: Invalid DB username password #########'
