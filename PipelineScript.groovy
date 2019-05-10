@@ -88,10 +88,12 @@ pipeline {
    stages {
       stage('Prepare Information') {
          steps {
+            sh("ls -al .")
+            sh("ls -al ${WORKSPACE}")
             dir("${WORKSPACE}") {
                sh ("git fetch --all -f")
             }
-            
+
             dir ("${env.APP_CONFIG_PATH}") {
                deleteDir()
             }
