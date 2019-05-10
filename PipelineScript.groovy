@@ -61,11 +61,14 @@ def svcs = [
 def unprocessedSvcs = []
 def versionChanges = []
 
+def scmCred = scm.getUserRemoteConfigs()[0].getCredentialsId()
+
 pipeline {
    agent any
    // Environment
    environment {
       // Global Variable Declartion
+      TOOL_REPO_URL='https://bitbucket.org/ascendcorp/ami-equator-openshift-db-tool.git'
       TOOL_HOME_PATH='tools'
       S3_APPCFG_ENDPOINT='https://s3-ap-southeast-1.amazonaws.com'
       S3_APPCFG_REGION='ap-southeast-1'
@@ -88,8 +91,6 @@ pipeline {
    stages {
       stage('Prepare Information') {
          steps {
-            sh("ls -al ${WORKSPACE}/${env.TOOL_HOME_PATH}")
-            
             dir ("${env.APP_CONFIG_PATH}") {
                deleteDir()
             }
@@ -105,9 +106,8 @@ pipeline {
                   return
                }
             }
-
+            git(url: "${env.TOOL_REPO_URL}", credentialsId: "${scmCred}")
             dir("${env.TOOL_HOME_PATH}") {
-               sh ("git fetch --all -f")
                script {
                   // Test provided Database credential
                   def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
