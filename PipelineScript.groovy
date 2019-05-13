@@ -61,8 +61,6 @@ def svcs = [
 def unprocessedSvcs = []
 def versionChanges = []
 
-def scmCred = scm.getUserRemoteConfigs()[0].getCredentialsId()
-
 pipeline {
    agent any
    // Environment
@@ -106,7 +104,7 @@ pipeline {
                   return
                }
             }
-            git(url: "${env.TOOL_REPO_URL}", credentialsId: "${scmCred}")
+            
             dir("${env.TOOL_HOME_PATH}") {
                script {
                   // Test provided Database credential
