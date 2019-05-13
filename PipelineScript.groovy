@@ -66,8 +66,6 @@ pipeline {
    // Environment
    environment {
       // Global Variable Declartion
-      TOOL_REPO_URL='https://bitbucket.org/ascendcorp/ami-equator-openshift-db-tool.git'
-      TOOL_HOME_PATH='tools'
       S3_APPCFG_ENDPOINT='https://s3-ap-southeast-1.amazonaws.com'
       S3_APPCFG_REGION='ap-southeast-1'
       S3_APPCFG_BUCKET='acm-eq-th-openshift-app-configs'
@@ -105,24 +103,22 @@ pipeline {
                }
             }
             
-            dir("${env.TOOL_HOME_PATH}") {
-               script {
-                  // Test provided Database credential
-                  def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-                  // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
-                  withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
-                     def dbTestStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
-                     if (dbTestStatus != 0) {
-                        echo '######### ERROR: Invalid DB username password #########'
-                        currentBuild.result = 'FAILED'
-                        skipRemainingStages = true
-                        error 'The given Database master credential is not correct'
-                        return
-                     }
+            script {
+               // Test provided Database credential
+               def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+               // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
+               withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
+                  def dbTestStatus = sh (script: "set +x; ${WORKSPACE}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
+                  if (dbTestStatus != 0) {
+                     echo '######### ERROR: Invalid DB username password #########'
+                     currentBuild.result = 'FAILED'
+                     skipRemainingStages = true
+                     error 'The given Database master credential is not correct'
+                     return
                   }
                }
             }
-
+            
             script {
                def eqVaultCred = "eqVaultCred${env.DatabaseEnvironment}"
                // Prepare for Vault fetching
@@ -192,7 +188,7 @@ pipeline {
                                     }
                                     withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                                        // Store existing version
-                                       def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                       def oldVer = sh (script: "set +x; ${WORKSPACE}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                        echo "Old Verion: ${oldVer}"
                                        dbVersionInfo.old_version = extractVersionInfo(oldVer)
 
@@ -201,8 +197,8 @@ pipeline {
                                           files.each { f ->
                                              def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
                                              sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
-                                             sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
-                                             sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
+                                             sh (script: "set +x; ${WORKSPACE}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
+                                             sh (script: "set +x; ${WORKSPACE}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
                                           }
                                        }
                                        // Find and replace secrets
@@ -213,8 +209,8 @@ pipeline {
                                           writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                        }
                                        // Execute goose up migration
-                                       def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
-                                       def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                       def migrationStatus = sh (script: "set +x; ${WORKSPACE}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
+                                       def newVer = sh (script: "set +x; ${WORKSPACE}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                        dbVersionInfo.new_version = extractVersionInfo(newVer)
                                        versionChanges << dbVersionInfo
                                        if (migrationStatus != 0) {
