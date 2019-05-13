@@ -96,6 +96,7 @@ pipeline {
             script {
                if (isUnix()) {
                   echo "######### INFO: OS is Unix-like #########"
+                  sh ("git --version")
                } else {
                   echo '######### ERROR: OS is NOT Unix-like. Pipeline does not support #########'
                   currentBuild.result = 'FAILED'
