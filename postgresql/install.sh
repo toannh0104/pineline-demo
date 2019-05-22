@@ -17,7 +17,7 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql11 postgresql11-server pgdg-redhat-repo || true) &&
+        (yum remove -y postgresql11 postgresql11-server postgresql-libs pgdg-redhat-repo || true) &&
         (rm -rf /var/lib/pgsql /usr/pgsql-11 || true) &&
         (userdel -f postgres || true)
       "
@@ -27,7 +27,7 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql10-server postgresql10 pgdg-redhat-repo || true) &&
+        (yum remove -y postgresql10-server postgresql10 postgresql-libs pgdg-redhat-repo || true) &&
         (rm -rf /var/lib/pgsql /usr/pgsql-10 || true) &&
         (userdel -f postgres || true)
       "
@@ -37,7 +37,7 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql96-server postgresql96 pgdg-redhat-repo || true) &&
+        (yum remove -y postgresql96-server postgresql96 postgresql-libs pgdg-redhat-repo || true) &&
         (rm -rf /var/lib/pgsql /usr/pgsql-9.6 || true) &&
         (userdel -f postgres || true)
       "
@@ -47,7 +47,7 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql--permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql95-server postgresql95 pgdg-redhat-repo || true) &&
+        (yum remove -y postgresql95-server postgresql95 postgresql-libs pgdg-redhat-repo || true) &&
         (rm -rf /var/lib/pgsql /usr/pgsql-9.5 || true) &&
         (userdel -f postgres || true)
       "
@@ -57,7 +57,7 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql94-server postgresql94 pgdg-redhat-repo || true) &&
+        (yum remove -y postgresql94-server postgresql94 postgresql-libs pgdg-redhat-repo || true) &&
         (rm -rf /var/lib/pgsql /usr/pgsql-9.4 || true) &&
         (userdel -f postgres || true)
       "
@@ -87,7 +87,7 @@ function install {
       # Install PostgreSQL 10
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql10 postgresql10-server postgresql-libs-9.2.24 &&
+        yum install -y postgresql10 postgresql10-server &&
         /usr/pgsql-10/bin/postgresql-10-setup initdb &&
         systemctl enable postgresql-10 &&
         systemctl start postgresql-10 &&
@@ -99,7 +99,7 @@ function install {
       # Install PostgreSQL 9.6
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql96 postgresql96-server postgresql-libs-9.2.24 &&
+        yum install -y postgresql96 postgresql96-server &&
         /usr/pgsql-9.6/bin/postgresql96-setup initdb &&
         systemctl enable postgresql-9.6 &&
         systemctl start postgresql-9.6 &&
@@ -111,7 +111,7 @@ function install {
       # Install PostgreSQL 9.5
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql95 postgresql95-server postgresql-libs-9.2.24 &&
+        yum install -y postgresql95 postgresql95-server &&
         /usr/pgsql-9.5/bin/postgresql95-setup initdb &&
         systemctl enable postgresql-9.5 &&
         systemctl start postgresql-9.5 &&
@@ -123,7 +123,7 @@ function install {
       # Install PostgreSQL 9.4
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql94 postgresql94-server postgresql-libs-9.2.24 &&
+        yum install -y postgresql94 postgresql94-server &&
         /usr/pgsql-9.4/bin/postgresql94-setup initdb &&
         systemctl enable postgresql-9.4 &&
         systemctl start postgresql-9.4 &&
