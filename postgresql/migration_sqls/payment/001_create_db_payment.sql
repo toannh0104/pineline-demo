@@ -1,0 +1,1 @@
+CREATE DATABASE payment_dev WITH OWNER eq_poc ENCODING 'utf8' LC_COLLATE = 'en_US.UTF-8'; 
