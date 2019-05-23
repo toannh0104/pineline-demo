@@ -1,0 +1,190 @@
+-- +goose Up
+-- SQL in this section is executed when the migration is applied.
+USE payment_dev;
+
+CREATE TABLE payment_dev.profile_service_balance_limitation
+(
+  id                        SERIAL                        NOT NULL PRIMARY KEY,
+  is_sale                   SMALLINT DEFAULT '0'                    NULL,
+  classification_id         INT                                       NULL,
+  user_type_id              INT                                       NULL,
+  type_id                   INT                                       NULL,
+  service_id                INT                                       NULL,
+  currency                  VARCHAR(16)                               NOT NULL,
+  maximum_amount            DECIMAL(20, 5)                            NOT NULL,
+  effective_date_from       DATE                                      NULL,
+  effective_date_to         DATE                                      NULL,
+  is_deleted                SMALLINT DEFAULT '0'                    NOT NULL,
+  created_timestamp         TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) NOT NULL,
+  last_updated_timestamp    TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) NOT NULL
+);
+
+CREATE TABLE payment_dev.service_tier_mask (
+  id BIGSERIAL NOT NULL,
+  service_id BIGINT NOT NULL,
+  name VARCHAR(256) NOT NULL UNIQUE,
+  priority BIGINT,
+  is_deleted SMALLINT NOT NULL DEFAULT 0,
+  from_effective_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  to_effective_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  created_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  last_updated_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  CONSTRAINT service_tier_mask_fk01 FOREIGN KEY (service_id) REFERENCES payment_dev.service (service_id));
+
+CREATE TABLE payment_dev.service_tier_mask_condition (
+  id BIGSERIAL NOT NULL,
+  service_tier_mask_id BIGINT NOT NULL,
+  actor VARCHAR(256) NULL,
+  actor_user_type VARCHAR(256) NULL,
+  actor_type_id BIGINT NULL,
+  actor_classification_id BIGINT NULL,
+  actor_postal_code VARCHAR(32) NULL,
+  is_deleted SMALLINT NOT NULL DEFAULT 0,
+  created_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  last_updated_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id),
+  CONSTRAINT service_tier_mask_condition_fk01 FOREIGN KEY (service_tier_mask_id) REFERENCES payment_dev.service_tier_mask (id));
+
+CREATE TABLE payment_dev.fee_tier_mask (
+  id BIGSERIAL NOT NULL,
+  service_tier_mask_id BIGINT NOT NULL,
+  fee_tier_condition varchar(256) DEFAULT NULL,
+  condition_amount decimal(15,5) DEFAULT NULL,
+  is_deleted SMALLINT NOT NULL DEFAULT 0,
+  created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  a_type_first varchar(256) DEFAULT NULL,
+  a_from_first varchar(256) DEFAULT NULL,
+  a_amount_first decimal(15,5) DEFAULT NULL,
+  a_operator varchar(256) DEFAULT NULL,
+  a_type_second varchar(256) DEFAULT NULL,
+  a_from_second varchar(256) DEFAULT NULL,
+  a_amount_second decimal(15,5) DEFAULT NULL,
+  b_type_first varchar(256) DEFAULT NULL,
+  b_from_first varchar(256) DEFAULT NULL,
+  b_amount_first decimal(15,5) DEFAULT NULL,
+  b_operator varchar(256) DEFAULT NULL,
+  b_type_second varchar(256) DEFAULT NULL,
+  b_from_second varchar(256) DEFAULT NULL,
+  b_amount_second decimal(15,5) DEFAULT NULL,
+  c_type_first varchar(256) DEFAULT NULL,
+  c_from_first varchar(256) DEFAULT NULL,
+  c_amount_first decimal(15,5) DEFAULT NULL,
+  c_operator varchar(256) DEFAULT NULL,
+  c_type_second varchar(256) DEFAULT NULL,
+  c_from_second varchar(256) DEFAULT NULL,
+  c_amount_second decimal(15,5) DEFAULT NULL,
+  d_type_first varchar(256) DEFAULT NULL,
+  d_from_first varchar(256) DEFAULT NULL,
+  d_amount_first decimal(15,5) DEFAULT NULL,
+  d_operator varchar(256) DEFAULT NULL,
+  d_type_second varchar(256) DEFAULT NULL,
+  d_from_second varchar(256) DEFAULT NULL,
+  d_amount_second decimal(15,5) DEFAULT NULL,
+  e_type_first varchar(256) DEFAULT NULL,
+  e_from_first varchar(256) DEFAULT NULL,
+  e_amount_first decimal(15,5) DEFAULT NULL,
+  e_operator varchar(256) DEFAULT NULL,
+  e_type_second varchar(256) DEFAULT NULL,
+  e_from_second varchar(256) DEFAULT NULL,
+  e_amount_second decimal(15,5) DEFAULT NULL,
+  f_type_first varchar(256) DEFAULT NULL,
+  f_from_first varchar(256) DEFAULT NULL,
+  f_amount_first decimal(15,5) DEFAULT NULL,
+  f_operator varchar(256) DEFAULT NULL,
+  f_type_second varchar(256) DEFAULT NULL,
+  f_from_second varchar(256) DEFAULT NULL,
+  f_amount_second decimal(15,5) DEFAULT NULL,
+  g_type_first varchar(256) DEFAULT NULL,
+  g_from_first varchar(256) DEFAULT NULL,
+  g_amount_first decimal(15,5) DEFAULT NULL,
+  g_operator varchar(256) DEFAULT NULL,
+  g_type_second varchar(256) DEFAULT NULL,
+  g_from_second varchar(256) DEFAULT NULL,
+  g_amount_second decimal(15,5) DEFAULT NULL,
+  h_type_first varchar(256) DEFAULT NULL,
+  h_from_first varchar(256) DEFAULT NULL,
+  h_amount_first decimal(15,5) DEFAULT NULL,
+  h_operator varchar(256) DEFAULT NULL,
+  h_type_second varchar(256) DEFAULT NULL,
+  h_from_second varchar(256) DEFAULT NULL,
+  h_amount_second decimal(15,5) DEFAULT NULL,
+  i_type_first varchar(256) DEFAULT NULL,
+  i_from_first varchar(256) DEFAULT NULL,
+  i_amount_first decimal(15,5) DEFAULT NULL,
+  i_operator varchar(256) DEFAULT NULL,
+  i_type_second varchar(256) DEFAULT NULL,
+  i_from_second varchar(256) DEFAULT NULL,
+  i_amount_second decimal(15,5) DEFAULT NULL,
+  j_type_first varchar(256) DEFAULT NULL,
+  j_from_first varchar(256) DEFAULT NULL,
+  j_amount_first decimal(15,5) DEFAULT NULL,
+  j_operator varchar(256) DEFAULT NULL,
+  j_type_second varchar(256) DEFAULT NULL,
+  j_from_second varchar(256) DEFAULT NULL,
+  j_amount_second decimal(15,5) DEFAULT NULL,
+  k_type_first varchar(256) DEFAULT NULL,
+  k_from_first varchar(256) DEFAULT NULL,
+  k_amount_first decimal(15,5) DEFAULT NULL,
+  k_operator varchar(256) DEFAULT NULL,
+  k_type_second varchar(256) DEFAULT NULL,
+  k_from_second varchar(256) DEFAULT NULL,
+  k_amount_second decimal(15,5) DEFAULT NULL,
+  l_type_first varchar(256) DEFAULT NULL,
+  l_from_first varchar(256) DEFAULT NULL,
+  l_amount_first decimal(15,5) DEFAULT NULL,
+  l_operator varchar(256) DEFAULT NULL,
+  l_type_second varchar(256) DEFAULT NULL,
+  l_from_second varchar(256) DEFAULT NULL,
+  l_amount_second decimal(15,5) DEFAULT NULL,
+  m_type_first varchar(256) DEFAULT NULL,
+  m_from_first varchar(256) DEFAULT NULL,
+  m_amount_first decimal(15,5) DEFAULT NULL,
+  m_operator varchar(256) DEFAULT NULL,
+  m_type_second varchar(256) DEFAULT NULL,
+  m_from_second varchar(256) DEFAULT NULL,
+  m_amount_second decimal(15,5) DEFAULT NULL,
+  n_type_first varchar(256) DEFAULT NULL,
+  n_from_first varchar(256) DEFAULT NULL,
+  n_amount_first decimal(15,5) DEFAULT NULL,
+  n_operator varchar(256) DEFAULT NULL,
+  n_type_second varchar(256) DEFAULT NULL,
+  n_from_second varchar(256) DEFAULT NULL,
+  n_amount_second decimal(15,5) DEFAULT NULL,
+  o_type_first varchar(256) DEFAULT NULL,
+  o_from_first varchar(256) DEFAULT NULL,
+  o_amount_first decimal(15,5) DEFAULT NULL,
+  o_operator varchar(256) DEFAULT NULL,
+  o_type_second varchar(256) DEFAULT NULL,
+  o_from_second varchar(256) DEFAULT NULL,
+  o_amount_second decimal(15,5) DEFAULT NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT fee_tier_mask_fk01 FOREIGN KEY (service_tier_mask_id) REFERENCES payment_dev.service_tier_mask (id));
+
+-- Create new table to support Commission and Fee Structure determined by Local system
+CREATE TABLE payment_dev.tier_level_mask (
+  id BIGSERIAL NOT NULL,
+  tier_level_name VARCHAR(256) NOT NULL,
+  order_id VARCHAR(256) NOT NULL,
+  value DECIMAL(20,5) NOT NULL,
+  is_deleted SMALLINT NOT NULL DEFAULT 0,
+  created_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  last_updated_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (id));
+
+-- add fee_tier_mask_id column to payment_dev.tr_order --
+ALTER TABLE `payment_dev`.`tr_order`
+ADD COLUMN `fee_tier_mask_id` BIGINT NULL DEFAULT NULL;
+
+-- +goose Down
+-- SQL in this section is executed when the migration is rolled back.
+SET foreign_key_checks = 0;
+
+DROP TABLE IF EXISTS payment_dev.profile_service_balance_limitation;
+DROP TABLE IF EXISTS payment_dev.service_tier_mask;
+DROP TABLE IF EXISTS payment_dev.service_tier_mask_condition;
+DROP TABLE IF EXISTS payment_dev.fee_tier_mask;
+
+ALTER TABLE payment_dev.tr_order DROP COLUMN fee_tier_mask_id;
+SET foreign_key_checks = 1;
