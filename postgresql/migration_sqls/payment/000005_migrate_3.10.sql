@@ -17,10 +17,10 @@ CREATE TABLE payment_dev.sof_service_balance_limitation
 );
 ALTER TABLE payment_dev.service ADD COLUMN is_allow_debt SMALLINT DEFAULT 0 NOT NULL;
 ALTER TABLE payment_dev.tr_order 
-    ADD COLUMN requestor_user_id BIGINT NULL DEFAULT NULL AFTER service_command_id,
+    ADD COLUMN requestor_user_id INT NULL DEFAULT NULL AFTER service_command_id,
     ADD COLUMN requestor_user_type VARCHAR(256) NULL DEFAULT NULL AFTER requestor_user_id,
-    ADD COLUMN requestor_sof_id BIGINT NULL DEFAULT NULL AFTER requestor_user_type,
-    ADD COLUMN requestor_sof_type_id BIGINT NULL DEFAULT NULL AFTER requestor_sof_id;
+    ADD COLUMN requestor_sof_id INT NULL DEFAULT NULL AFTER requestor_user_type,
+    ADD COLUMN requestor_sof_type_id INT NULL DEFAULT NULL AFTER requestor_sof_id;
 INSERT IGNORE INTO payment_dev.m_actor_type (actor_type_id, actor_type) VALUES ('7', 'Requestor');
 
 -- +goose Down

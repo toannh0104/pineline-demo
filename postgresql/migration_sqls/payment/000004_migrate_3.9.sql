@@ -7,7 +7,7 @@ CREATE INDEX tr_order_idx13 ON payment_dev.tr_order (state);
 
 -- 3.8
 ALTER TABLE payment_dev.order_balance_movement 
-	ADD COLUMN voucher_id BIGINT NULL,
+	ADD COLUMN voucher_id INT NULL,
 	ADD COLUMN voucher_code VARCHAR(256) NULL;
 
 ALTER TABLE payment_dev.order_balance_movement
@@ -36,18 +36,18 @@ ALTER TABLE payment_dev.service ADD COLUMN apply_to_all_company_type SMALLINT DE
 ALTER TABLE payment_dev.service ADD COLUMN apply_to_all_customer_classification SMALLINT DEFAULT 0 NOT NULL;
 CREATE TABLE IF NOT EXISTS payment_dev.service_company_type
 (
-    id BIGSERIAL PRIMARY KEY,
-    service_id BIGINT NOT NULL,
-    company_type_id BIGINT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    service_id INT NOT NULL,
+    company_type_id INT NOT NULL,
     CONSTRAINT service_company_type_fk01 FOREIGN KEY (service_id) REFERENCES payment_dev.service (service_id)
 );
 CREATE TABLE IF NOT EXISTS payment_dev.command_tier_mask
 (
-    id BIGSERIAL PRIMARY KEY,
-    service_command_id BIGINT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    service_command_id INT NOT NULL,
     tier_level_name varchar(256),
-    number_of_time BIGINT,
-    is_deleted TINYBIGINT NOT NULL DEFAULT 0,
+    number_of_time INT,
+    is_deleted TINYINT NOT NULL DEFAULT 0,
     created_timestamp TIMESTAMP(6)  DEFAULT CURRENT_TIMESTAMP(6) NOT NULL,
     last_updated_timestamp TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) NOT NULL
 );
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.service_customer_classification
 CREATE INDEX service_customer_classification_fk01 ON payment_dev.service_customer_classification (service_id);
 CREATE INDEX service_customer_classification_fk02 ON payment_dev.service_customer_classification (customer_classification_id);
 INSERT IGNORE INTO payment_dev.m_security_type (id, name) VALUES (3 ,'Internal OTP');
-ALTER TABLE payment_dev.tr_order ADD COLUMN command_tier_mask_id BIGINT;
+ALTER TABLE payment_dev.tr_order ADD COLUMN command_tier_mask_id INT;
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.

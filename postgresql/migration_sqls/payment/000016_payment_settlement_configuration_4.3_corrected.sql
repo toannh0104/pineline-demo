@@ -8,4 +8,4 @@ ALTER TABLE payment_dev.settlement_resolving_history MODIFY order_id varchar(256
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
 
-ALTER TABLE payment_dev.settlement_resolving_history MODIFY order_id BIGINT NOT NULL;
+ALTER TABLE payment_dev.settlement_resolving_history MODIFY order_id INT NOT NULL;

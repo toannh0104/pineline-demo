@@ -1,19 +1,19 @@
 -- +goose Up
 -- SQL in this section is executed when the migration is applied.
 
-CREATE SCHEMA IF NOT EXISTS payment_dev AUTHORIZATION DB_RW_USERNAME_PAYMENT;
-GRANT CONNECT ON DATABASE payment_dev TO DB_RW_USERNAME_PAYMENT;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA payment_dev TO DB_RW_USERNAME_PAYMENT;
-SET search_path TO payment_dev;
+CREATE SCHEMA IF NOT EXISTS payment_dev AUTHORIZATION payment_rw;
+GRANT CONNECT ON DATABASE payment_dev TO payment_rw;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA payment_dev TO payment_rw;
+SET search_path TO payment_rw;
 
 CREATE TABLE IF NOT EXISTS payment_dev.agent_bonus_distribution (
-  agent_bonus_distribution_id BIGSERIAL,
-  fee_tier_id BIGINT NOT NULL,
+  agent_bonus_distribution_id SERIAL,
+  fee_tier_id INT NOT NULL,
   action_type varchar(256) NOT NULL,
   actor_type varchar(256) DEFAULT NULL,
-  specific_actor_id BIGINT DEFAULT NULL,
-  sof_type_id BIGINT DEFAULT NULL,
-  specific_sof BIGINT DEFAULT NULL,
+  specific_actor_id INT DEFAULT NULL,
+  sof_type_id INT DEFAULT NULL,
+  specific_sof INT DEFAULT NULL,
   amount_type varchar(256) DEFAULT NULL,
   rate decimal(15,5) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
@@ -25,13 +25,13 @@ CREATE TABLE IF NOT EXISTS payment_dev.agent_bonus_distribution (
 CREATE INDEX agent_bonus_distribution_idx01 ON payment_dev.agent_bonus_distribution (fee_tier_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.agent_fee_distribution (
-  agent_fee_distribution_id BIGSERIAL,
-  fee_tier_id BIGINT NOT NULL,
+  agent_fee_distribution_id SERIAL,
+  fee_tier_id INT NOT NULL,
   action_type varchar(256) NOT NULL,
   actor_type varchar(256) DEFAULT NULL,
-  specific_actor_id BIGINT DEFAULT NULL,
-  sof_type_id BIGINT DEFAULT NULL,
-  specific_sof BIGINT DEFAULT NULL,
+  specific_actor_id INT DEFAULT NULL,
+  sof_type_id INT DEFAULT NULL,
+  specific_sof INT DEFAULT NULL,
   amount_type varchar(256) DEFAULT NULL,
   rate decimal(15,5) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
@@ -43,13 +43,13 @@ CREATE TABLE IF NOT EXISTS payment_dev.agent_fee_distribution (
 CREATE INDEX agent_fee_distribution_idx01 ON payment_dev.agent_fee_distribution (fee_tier_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.balance_distribution (
-  balance_distribution_id BIGSERIAL,
-  fee_tier_id BIGINT NOT NULL,
+  balance_distribution_id SERIAL,
+  fee_tier_id INT NOT NULL,
   action_type varchar(256) NOT NULL,
   actor_type varchar(256) DEFAULT NULL,
-  specific_actor_id BIGINT DEFAULT NULL,
-  sof_type_id BIGINT DEFAULT NULL,
-  specific_sof BIGINT DEFAULT NULL,
+  specific_actor_id INT DEFAULT NULL,
+  sof_type_id INT DEFAULT NULL,
+  specific_sof INT DEFAULT NULL,
   amount_type varchar(256) DEFAULT NULL,
   rate decimal(15,5) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
@@ -62,13 +62,13 @@ CREATE TABLE IF NOT EXISTS payment_dev.balance_distribution (
 CREATE INDEX balance_distribution_idx01 ON payment_dev.balance_distribution (fee_tier_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.bonus_distribution (
-  bonus_distribution_id BIGSERIAL,
-  fee_tier_id BIGINT NOT NULL,
+  bonus_distribution_id SERIAL,
+  fee_tier_id INT NOT NULL,
   action_type varchar(256) NOT NULL,
   actor_type varchar(256) DEFAULT NULL,
-  specific_actor_id BIGINT DEFAULT NULL,
-  sof_type_id BIGINT DEFAULT NULL,
-  specific_sof BIGINT DEFAULT NULL,
+  specific_actor_id INT DEFAULT NULL,
+  sof_type_id INT DEFAULT NULL,
+  specific_sof INT DEFAULT NULL,
   amount_type varchar(256) DEFAULT NULL,
   rate decimal(15,5) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
@@ -80,8 +80,8 @@ CREATE TABLE IF NOT EXISTS payment_dev.bonus_distribution (
 CREATE INDEX bonus_distribution_idx01 ON payment_dev.bonus_distribution (fee_tier_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.fee_tier (
-  fee_tier_id BIGSERIAL,
-  service_command_id BIGINT NOT NULL,
+  fee_tier_id SERIAL,
+  service_command_id INT NOT NULL,
   fee_tier_condition varchar(256) DEFAULT NULL,
   condition_amount decimal(15,5) DEFAULT NULL,
   fee_type varchar(256) DEFAULT NULL,
@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.fee_tier (
 CREATE INDEX fee_tier_idx01 ON payment_dev.fee_tier (service_command_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_action_type (
-  action_type_id BIGSERIAL,
+  action_type_id SERIAL,
   action_type varchar(256) NOT NULL,
   PRIMARY KEY (action_type_id)
 );
@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_action_type (
 CREATE UNIQUE INDEX action_type ON payment_dev.m_action_type (action_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_actor_type (
-  actor_type_id BIGSERIAL,
+  actor_type_id SERIAL,
   actor_type varchar(256) NOT NULL,
   PRIMARY KEY (actor_type_id)
 );
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_actor_type (
 CREATE UNIQUE INDEX actor_type ON payment_dev.m_actor_type (actor_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_amount_type (
-  amount_type_id BIGSERIAL,
+  amount_type_id SERIAL,
   amount_type varchar(256) NOT NULL,
   PRIMARY KEY (amount_type_id)
 );
@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_amount_type (
 CREATE UNIQUE INDEX amount_type ON payment_dev.m_amount_type (amount_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_command (
-  command_id BIGSERIAL,
+  command_id SERIAL,
   command_name varchar(256) NOT NULL,
   PRIMARY KEY (command_id)
 );
@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_command (
 CREATE UNIQUE INDEX command_name ON payment_dev.m_command (command_name);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_fee_tier_condition (
-  fee_tier_condition_id BIGSERIAL,
+  fee_tier_condition_id SERIAL,
   fee_tier_condition varchar(256) NOT NULL,
   PRIMARY KEY (fee_tier_condition_id)
 );
@@ -244,7 +244,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_fee_tier_condition (
 CREATE UNIQUE INDEX fee_tier_condition ON payment_dev.m_fee_tier_condition (fee_tier_condition);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_payment_method (
-  payment_method_id BIGSERIAL,
+  payment_method_id SERIAL,
   payment_method varchar(256) NOT NULL,
   PRIMARY KEY (payment_method_id)
 );
@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_payment_method (
 CREATE UNIQUE INDEX payment_method ON payment_dev.m_payment_method (payment_method);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_security_type (
-  id BIGSERIAL,
+  id SERIAL,
   name varchar(256) NOT NULL,
   PRIMARY KEY (id)
 );
@@ -260,7 +260,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_security_type (
 CREATE UNIQUE INDEX name ON payment_dev.m_security_type (name);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_sof_type (
-  sof_type_id BIGSERIAL,
+  sof_type_id SERIAL,
   sof_type varchar(256) NOT NULL,
   PRIMARY KEY (sof_type_id)
 );
@@ -268,7 +268,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_sof_type (
 CREATE UNIQUE INDEX sof_type ON payment_dev.m_sof_type (sof_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_spi_url_call_method (
-  spi_url_call_method_id BIGSERIAL,
+  spi_url_call_method_id SERIAL,
   spi_url_call_method varchar(100) NOT NULL,
   PRIMARY KEY (spi_url_call_method_id)
 );
@@ -276,7 +276,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_spi_url_call_method (
 CREATE UNIQUE INDEX spi_url_call_method ON payment_dev.m_spi_url_call_method (spi_url_call_method);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_spi_url_configuration_type (
-  spi_url_configuration_type_id BIGSERIAL,
+  spi_url_configuration_type_id SERIAL,
   spi_url_configuration_type varchar(100) NOT NULL,
   PRIMARY KEY (spi_url_configuration_type_id)
 );
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.m_spi_url_configuration_type (
 CREATE UNIQUE INDEX spi_url_configuration_type ON payment_dev.m_spi_url_configuration_type (spi_url_configuration_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.m_spi_url_type (
-  spi_url_type_id BIGSERIAL,
+  spi_url_type_id SERIAL,
   spi_url_type varchar(100) NOT NULL,
   PRIMARY KEY (spi_url_type_id)
 );
@@ -295,9 +295,9 @@ CREATE TABLE IF NOT EXISTS payment_dev.order_balance_movement (
   order_balance_movement_id varchar(256) NOT NULL,
   order_id varchar(256) NOT NULL,
   action_type varchar(256) NOT NULL,
-  actor_user_id BIGINT DEFAULT NULL,
-  sof_id BIGINT NOT NULL,
-  sof_type_id BIGINT NOT NULL,
+  actor_user_id INT DEFAULT NULL,
+  sof_id INT NOT NULL,
+  sof_type_id INT NOT NULL,
   amount decimal(20,5) NOT NULL,
   status SMALLINT NOT NULL DEFAULT '0',
   is_deleted SMALLINT NOT NULL DEFAULT '0',
@@ -305,8 +305,8 @@ CREATE TABLE IF NOT EXISTS payment_dev.order_balance_movement (
   last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   fee_related SMALLINT DEFAULT '0',
   remark varchar(256) DEFAULT NULL,
-  user_id BIGINT DEFAULT NULL,
-  user_type_id BIGINT DEFAULT NULL,
+  user_id INT DEFAULT NULL,
+  user_type_id INT DEFAULT NULL,
   amount_type varchar(256) DEFAULT NULL,
   post_balance decimal(20,5) DEFAULT NULL,
   pre_balance decimal(20,5) DEFAULT NULL,
@@ -330,9 +330,9 @@ CREATE TABLE IF NOT EXISTS payment_dev.order_reference (
 CREATE  INDEX order_idx01 ON payment_dev.order_reference (order_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.service (
-  service_id BIGSERIAL,
+  service_id SERIAL,
   service_name varchar(256) NOT NULL,
-  service_group_id BIGINT NOT NULL,
+  service_group_id INT NOT NULL,
   currency varchar(3) NOT NULL,
   status SMALLINT NOT NULL DEFAULT '1',
   description varchar(256) DEFAULT NULL,
@@ -350,17 +350,17 @@ CREATE  INDEX service_idx01 ON payment_dev.service  (service_name);
 CREATE  INDEX service_idx02 ON payment_dev.service  (service_name,service_group_id,currency);
 
 CREATE TABLE IF NOT EXISTS payment_dev.service_agent_type (
-  id BIGSERIAL,
-  service_id BIGINT NOT NULL,
-  agent_type_id BIGINT NOT NULL,
+  id SERIAL,
+  service_id INT NOT NULL,
+  agent_type_id INT NOT NULL,
   PRIMARY KEY (id),
   CONSTRAINT service_agent_type_fk01 FOREIGN KEY (service_id) REFERENCES payment_dev.service (service_id)
 );
 
 CREATE TABLE IF NOT EXISTS payment_dev.service_command (
-  service_command_id BIGSERIAL,
-  service_id BIGINT NOT NULL,
-  command_id BIGINT NOT NULL,
+  service_command_id SERIAL,
+  service_id INT NOT NULL,
+  command_id INT NOT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.service_command (
 CREATE  INDEX service_command_idx01 ON payment_dev.service_command  (command_id,service_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.service_group (
-  service_group_id BIGSERIAL,
+  service_group_id SERIAL,
   service_group_name varchar(256) NOT NULL,
   description varchar(256) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
@@ -385,15 +385,15 @@ CREATE TABLE IF NOT EXISTS payment_dev.service_group (
 CREATE  INDEX service_group_idx01 ON payment_dev.service_group (service_group_name);
 
 CREATE TABLE IF NOT EXISTS payment_dev.spi_url (
-  spi_url_id BIGSERIAL,
-  service_command_id BIGINT NOT NULL,
-  read_timeout BIGINT DEFAULT NULL,
+  spi_url_id SERIAL,
+  service_command_id INT NOT NULL,
+  read_timeout INT DEFAULT NULL,
   spi_url_type varchar(100) NOT NULL,
   url varchar(256) DEFAULT NULL,
   spi_url_call_method varchar(50) NOT NULL,
   expire_in_minute NUMERIC(3) NOT NULL,
   max_retry NUMERIC(3) NOT NULL DEFAULT '1',
-  retry_delay_millisecond BIGINT NOT NULL,
+  retry_delay_millisecond INT NOT NULL,
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (spi_url_id)
@@ -403,14 +403,14 @@ CREATE INDEX spi_url_idx01 ON payment_dev.spi_url (service_command_id);
 CREATE UNIQUE INDEX service_command_id ON payment_dev.spi_url (service_command_id,spi_url_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.spi_url_configuration (
-  spi_url_configuration_id BIGSERIAL,
-  spi_url_id BIGINT NOT NULL,
+  spi_url_configuration_id SERIAL,
+  spi_url_id INT NOT NULL,
   spi_url_configuration_type varchar(100) NOT NULL,
-  read_timeout BIGINT DEFAULT NULL,
+  read_timeout INT DEFAULT NULL,
   url varchar(256) DEFAULT NULL,
-  expire_in_minute BIGINT NOT NULL,
+  expire_in_minute INT NOT NULL,
   max_retry NUMERIC(3) DEFAULT '1',
-  retry_delay_millisecond BIGINT DEFAULT NULL,
+  retry_delay_millisecond INT DEFAULT NULL,
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (spi_url_configuration_id)
@@ -420,7 +420,7 @@ CREATE INDEX spi_url_configuration_idx01 ON payment_dev.spi_url_configuration (s
 CREATE UNIQUE INDEX spi_url_id ON payment_dev.spi_url_configuration (spi_url_id,spi_url_configuration_type);
 
 CREATE TABLE IF NOT EXISTS payment_dev.tier_level (
-  id BIGSERIAL,
+  id SERIAL,
   name varchar(256) NOT NULL,
   label varchar(256) NOT NULL,
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -428,35 +428,35 @@ CREATE TABLE IF NOT EXISTS payment_dev.tier_level (
   PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX name_tier ON payment_dev.tier_level (name); 
-CREATE UNIQUE INDEX label ON payment_dev.tier_level (label);
+CREATE UNIQUE INDEX tier_level_name_idx01 ON payment_dev.tier_level (name); 
+CREATE UNIQUE INDEX tier_level_label_idx01 ON payment_dev.tier_level (label);
 
 CREATE TABLE IF NOT EXISTS payment_dev.tr_order (
   order_id varchar(256) NOT NULL,
   ext_transaction_id varchar(256) DEFAULT NULL,
   payment_method_name varchar(256) DEFAULT NULL,
   payment_method_ref varchar(256) DEFAULT NULL,
-  service_id BIGINT DEFAULT NULL,
+  service_id INT DEFAULT NULL,
   service_name varchar(256) DEFAULT NULL,
-  command_id BIGINT DEFAULT NULL,
+  command_id INT DEFAULT NULL,
   command_name varchar(256) DEFAULT NULL,
-  service_command_id BIGINT NOT NULL,
-  initiator_user_id BIGINT NOT NULL,
+  service_command_id INT NOT NULL,
+  initiator_user_id INT NOT NULL,
   initiator_user_type varchar(256) NOT NULL,
-  initiator_sof_id BIGINT DEFAULT NULL,
-  initiator_sof_type_id BIGINT DEFAULT NULL,
-  payer_user_id BIGINT NOT NULL,
+  initiator_sof_id INT DEFAULT NULL,
+  initiator_sof_type_id INT DEFAULT NULL,
+  payer_user_id INT NOT NULL,
   payer_user_type varchar(256) NOT NULL,
   payer_user_ref_type varchar(256) DEFAULT NULL,
   payer_user_ref_value varchar(256) DEFAULT NULL,
-  payer_sof_id BIGINT NOT NULL,
-  payer_sof_type_id BIGINT NOT NULL,
-  payee_user_id BIGINT NOT NULL,
+  payer_sof_id INT NOT NULL,
+  payer_sof_type_id INT NOT NULL,
+  payee_user_id INT NOT NULL,
   payee_user_type varchar(256) NOT NULL,
   payee_user_ref_type varchar(256) DEFAULT NULL,
   payee_user_ref_value varchar(256) DEFAULT NULL,
-  payee_sof_id BIGINT NOT NULL,
-  payee_sof_type_id BIGINT NOT NULL,
+  payee_sof_id INT NOT NULL,
+  payee_sof_type_id INT NOT NULL,
   currency varchar(3) NOT NULL,
   ref_order_id varchar(256) DEFAULT NULL,
   amount decimal(20,5) NOT NULL,
@@ -519,9 +519,9 @@ CREATE INDEX tr_order_idx12 ON payment_dev.tr_order (short_order_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.tr_transaction (
   transaction_id varchar(256) NOT NULL,
-  service_group_id BIGINT DEFAULT NULL,
-  service_id BIGINT DEFAULT NULL,
-  service_command_id BIGINT DEFAULT NULL,
+  service_group_id INT DEFAULT NULL,
+  service_id INT DEFAULT NULL,
+  service_command_id INT DEFAULT NULL,
   order_id varchar(256) DEFAULT NULL,
   sof_type varchar(256) DEFAULT NULL,
   status SMALLINT DEFAULT NULL,
@@ -531,9 +531,9 @@ CREATE TABLE IF NOT EXISTS payment_dev.tr_transaction (
 );
 
 CREATE TABLE IF NOT EXISTS payment_dev.user_payment_pin (
-  id BIGSERIAL,
-  user_id BIGINT DEFAULT NULL,
-  user_type_id BIGINT DEFAULT NULL,
+  id SERIAL,
+  user_id INT DEFAULT NULL,
+  user_type_id INT DEFAULT NULL,
   pin varchar(256) DEFAULT NULL,
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -544,11 +544,11 @@ CREATE UNIQUE INDEX user_id ON payment_dev.user_payment_pin (user_id,user_type_i
 CREATE INDEX user_payment_pin_idx01 ON payment_dev.user_payment_pin (user_id,user_type_id);
 
 CREATE TABLE IF NOT EXISTS payment_dev.user_sof (
-  id BIGSERIAL,
-  user_id BIGINT DEFAULT NULL,
-  user_type_id BIGINT DEFAULT NULL,
-  sof_id BIGINT DEFAULT NULL,
-  sof_type_id BIGINT DEFAULT NULL,
+  id SERIAL,
+  user_id INT DEFAULT NULL,
+  user_type_id INT DEFAULT NULL,
+  sof_id INT DEFAULT NULL,
+  sof_type_id INT DEFAULT NULL,
   currency varchar(3) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT '0',
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

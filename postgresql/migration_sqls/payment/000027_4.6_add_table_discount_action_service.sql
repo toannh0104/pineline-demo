@@ -5,9 +5,9 @@ USE payment_dev;
 SET FOREIGN_KEY_CHECKS=0;
 
 CREATE TABLE IF NOT EXISTS payment_dev.discount_action_service (
-  id BIGSERIAL NOT NULL,
-  action_id BIGINT NOT NULL,
-  service_id BIGINT NOT NULL,
+  id SERIAL NOT NULL,
+  action_id INT NOT NULL,
+  service_id INT NOT NULL,
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

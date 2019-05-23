@@ -3,8 +3,8 @@
 USE payment_dev;
 
 ALTER TABLE payment_dev.fee_tier_mask 
-ADD COLUMN fee_tier_id BIGINT NULL,
-ADD COLUMN command_id BIGINT NULL,
+ADD COLUMN fee_tier_id INT NULL,
+ADD COLUMN command_id INT NULL,
 ADD COLUMN command_name VARCHAR(256) NULL;
 
 -- +goose Down

@@ -20,10 +20,10 @@ CREATE TABLE payment_dev.profile_service_balance_limitation
 );
 
 CREATE TABLE payment_dev.service_tier_mask (
-  id BIGSERIAL NOT NULL,
-  service_id BIGINT NOT NULL,
+  id SERIAL NOT NULL,
+  service_id INT NOT NULL,
   name VARCHAR(256) NOT NULL UNIQUE,
-  priority BIGINT,
+  priority INT,
   is_deleted SMALLINT NOT NULL DEFAULT 0,
   from_effective_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   to_effective_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -33,12 +33,12 @@ CREATE TABLE payment_dev.service_tier_mask (
   CONSTRAINT service_tier_mask_fk01 FOREIGN KEY (service_id) REFERENCES payment_dev.service (service_id));
 
 CREATE TABLE payment_dev.service_tier_mask_condition (
-  id BIGSERIAL NOT NULL,
-  service_tier_mask_id BIGINT NOT NULL,
+  id SERIAL NOT NULL,
+  service_tier_mask_id INT NOT NULL,
   actor VARCHAR(256) NULL,
   actor_user_type VARCHAR(256) NULL,
-  actor_type_id BIGINT NULL,
-  actor_classification_id BIGINT NULL,
+  actor_type_id INT NULL,
+  actor_classification_id INT NULL,
   actor_postal_code VARCHAR(32) NULL,
   is_deleted SMALLINT NOT NULL DEFAULT 0,
   created_timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -47,8 +47,8 @@ CREATE TABLE payment_dev.service_tier_mask_condition (
   CONSTRAINT service_tier_mask_condition_fk01 FOREIGN KEY (service_tier_mask_id) REFERENCES payment_dev.service_tier_mask (id));
 
 CREATE TABLE payment_dev.fee_tier_mask (
-  id BIGSERIAL NOT NULL,
-  service_tier_mask_id BIGINT NOT NULL,
+  id SERIAL NOT NULL,
+  service_tier_mask_id INT NOT NULL,
   fee_tier_condition varchar(256) DEFAULT NULL,
   condition_amount decimal(15,5) DEFAULT NULL,
   is_deleted SMALLINT NOT NULL DEFAULT 0,
@@ -164,7 +164,7 @@ CREATE TABLE payment_dev.fee_tier_mask (
 
 -- Create new table to support Commission and Fee Structure determined by Local system
 CREATE TABLE payment_dev.tier_level_mask (
-  id BIGSERIAL NOT NULL,
+  id SERIAL NOT NULL,
   tier_level_name VARCHAR(256) NOT NULL,
   order_id VARCHAR(256) NOT NULL,
   value DECIMAL(20,5) NOT NULL,
@@ -175,7 +175,7 @@ CREATE TABLE payment_dev.tier_level_mask (
 
 -- add fee_tier_mask_id column to payment_dev.tr_order --
 ALTER TABLE `payment_dev`.`tr_order`
-ADD COLUMN `fee_tier_mask_id` BIGINT NULL DEFAULT NULL;
+ADD COLUMN `fee_tier_mask_id` INT NULL DEFAULT NULL;
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.
