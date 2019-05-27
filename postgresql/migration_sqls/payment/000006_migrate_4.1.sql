@@ -174,8 +174,8 @@ CREATE TABLE payment_dev.tier_level_mask (
   PRIMARY KEY (id));
 
 -- add fee_tier_mask_id column to payment_dev.tr_order --
-ALTER TABLE `payment_dev`.`tr_order`
-ADD COLUMN `fee_tier_mask_id` INT NULL DEFAULT NULL;
+ALTER TABLE payment_dev.tr_order
+ADD COLUMN fee_tier_mask_id INT NULL DEFAULT NULL;
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.

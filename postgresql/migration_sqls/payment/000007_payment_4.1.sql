@@ -6,7 +6,7 @@ CREATE TABLE payment_dev.m_service_transaction_limitation_equation (
   id   INT          NOT NULL,
   name VARCHAR(512) NOT NULL
 );
-INSERT IGNORE INTO payment_dev.m_service_transaction_limitation_equation(id, name) VALUES (1,'Sum of the transaction values (absolute amount of credit and debit)');
+INSERT INTO payment_dev.m_service_transaction_limitation_equation(id, name) VALUES (1,'Sum of the transaction values (absolute amount of credit and debit)');
 CREATE TABLE payment_dev.service_limitation (
   id                        SERIAL         NOT NULL  PRIMARY KEY,
   service_id                INT            NOT NULL,

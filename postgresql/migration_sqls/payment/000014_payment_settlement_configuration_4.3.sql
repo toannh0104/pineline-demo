@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.settlement_configuration (
   currency varchar(3) NOT NULL,
   service_group_id INT NOT NULL,
   service_id INT NOT NULL,
-  is_deleted tinyint(1) DEFAULT '0',
+  is_deleted SMALLINT DEFAULT '0',
   created_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   last_updated_timestamp timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   PRIMARY KEY (id)

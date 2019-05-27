@@ -2,8 +2,8 @@
 -- SQL in this section is executed when the migration is applied.
 USE payment_dev;
 
-ALTER TABLE payment_dev.service ADD COLUMN `hierarchy_dependent` SMALLINT default 0;
-ALTER TABLE payment_dev.service ADD COLUMN `hierarchy_dependent_actor` varchar(256);
+ALTER TABLE payment_dev.service ADD COLUMN hierarchy_dependent SMALLINT default 0;
+ALTER TABLE payment_dev.service ADD COLUMN hierarchy_dependent_actor varchar(256);
 
 -- +goose Down
 -- SQL in this section is executed when the migration is rolled back.

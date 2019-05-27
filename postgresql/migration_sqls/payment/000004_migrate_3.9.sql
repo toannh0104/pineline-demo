@@ -13,23 +13,23 @@ ALTER TABLE payment_dev.order_balance_movement
 ALTER TABLE payment_dev.order_balance_movement
 	ADD COLUMN original_balance_movement_id VARCHAR(256) NULL;
 
-CREATE OR REPLACE VIEW payment_dev.user_company AS
- 	SELECT
-	    a.id AS id,
-	    a.id AS user_id,
-	    'agent' AS user_type,
-	    a.company_id AS company_id,
-	    0 AS is_deleted
-	FROM agent_dev.agent_profile AS a
-	WHERE (a.company_id IS NOT NULL)
-	UNION ALL
-	SELECT
-	    c.id AS id,
-	    c.customer_id AS user_id,
-	    'customer' AS user_type,
-	    c.company_id AS company_id,
-	    c.is_deleted AS is_deleted
-	FROM customer_dev.customer_company AS c;
+-- CREATE OR REPLACE VIEW payment_dev.user_company AS
+--  	SELECT
+-- 	    a.id AS id,
+-- 	    a.id AS user_id,
+-- 	    'agent' AS user_type,
+-- 	    a.company_id AS company_id,
+-- 	    0 AS is_deleted
+-- 	FROM agent_dev.agent_profile AS a
+-- 	WHERE (a.company_id IS NOT NULL)
+-- 	UNION ALL
+-- 	SELECT
+-- 	    c.id AS id,
+-- 	    c.customer_id AS user_id,
+-- 	    'customer' AS user_type,
+-- 	    c.company_id AS company_id,
+-- 	    c.is_deleted AS is_deleted
+-- 	FROM customer_dev.customer_company AS c;
 
 -- 3.9
 ALTER TABLE payment_dev.service ADD COLUMN apply_to_all_company_type SMALLINT DEFAULT 0 NOT NULL;
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.command_tier_mask
     service_command_id INT NOT NULL,
     tier_level_name varchar(256),
     number_of_time INT,
-    is_deleted TINYINT NOT NULL DEFAULT 0,
+    is_deleted SMALLINT NOT NULL DEFAULT 0,
     created_timestamp TIMESTAMP(6)  DEFAULT CURRENT_TIMESTAMP(6) NOT NULL,
     last_updated_timestamp TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) NOT NULL
 );
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS payment_dev.service_customer_classification
 );
 CREATE INDEX service_customer_classification_fk01 ON payment_dev.service_customer_classification (service_id);
 CREATE INDEX service_customer_classification_fk02 ON payment_dev.service_customer_classification (customer_classification_id);
-INSERT IGNORE INTO payment_dev.m_security_type (id, name) VALUES (3 ,'Internal OTP');
+INSERT INTO payment_dev.m_security_type (id, name) VALUES (3 ,'Internal OTP');
 ALTER TABLE payment_dev.tr_order ADD COLUMN command_tier_mask_id INT;
 
 -- +goose Down
