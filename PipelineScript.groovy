@@ -78,7 +78,7 @@ pipeline {
    }
    parameters {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging\nproduction', description: 'Select target database environment')
-      action(name: 'Action', choices: 'Check\nUpgrade\nReset', description: 'Check: report current version compare to release information.\nUpgrade: Upgrade database to the latest released version.\nReset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
+      choice(name: 'Action', choices: 'Check\nUpgrade\nReset', description: 'Check: report current version compare to release information.\nUpgrade: Upgrade database to the latest released version.\nReset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'For security reason, by default, above services will be skipped.\nIf you want to restore specific database schema, you need to remove it out from the list.')
    }
    options {
