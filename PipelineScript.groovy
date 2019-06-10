@@ -111,7 +111,7 @@ pipeline {
                script {
                   // Download softwares
                   withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_APPCFG_ENDPOINT}", region: "${env.S3_APPCFG_REGION}") {
-                     s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "goose", path: "software/goose", force: true)
+                     s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_GOOSE_BUCKET}", file: "goose", path: "software/goose", force: true)
                   }
                   // Test provided Database credential
                   if (env.DatabaseEnvironment == "production") {
