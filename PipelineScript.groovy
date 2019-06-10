@@ -61,6 +61,7 @@ def svcs = [
 def unprocessedSvcs = []
 def versionChanges = []
 def dbUrl = ''
+def msgOut = ''
 pipeline {
    agent any
    // Environment
@@ -93,7 +94,6 @@ pipeline {
             dir ("${env.APP_CONFIG_PATH}") {
                deleteDir()
             }
-
             script {
                if (isUnix()) {
                   echo "######### INFO: OS is Unix-like #########"
@@ -108,6 +108,7 @@ pipeline {
             }
             
             dir("${env.TOOL_HOME_PATH}") {
+               d
                script {
                   // Download softwares
                   withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
@@ -166,6 +167,7 @@ pipeline {
                // Begin Script
                switch(env.Action) {
                   case "check":
+                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Curent ver. --|-- Target ver. --|\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         // Get services version
@@ -203,13 +205,12 @@ pipeline {
                               echo "######### WARNING: cannot get current info of service. DB Operation will be skipped for <${svcName}> #########"
                               echo "${exc.toString()}"
                               sh "rm -rf ${svcName}-info.json"
-                              unprocessedSvcs << "${svcName}"
-                              currentBuild.result='UNSTABLE'
                            }
                         }
                      }  // End directory
                      break
                   case "upgrade":
+                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -237,6 +238,7 @@ pipeline {
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
+                                       def targetVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
                                        dir ("${artifact}/db_migration") {
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
@@ -253,15 +255,9 @@ pipeline {
                                              def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              echo "Old Verion: ${oldVer}"
                                              dbVersionInfo.old_version = extractVersionInfo(oldVer)
-
-                                             dir ("create-databases") {
-                                                def files = findFiles(glob: '*.sql')
-                                                files.each { f ->
-                                                   def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
-                                                   sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
-                                                   sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
-                                                   sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
-                                                }
+                                             if (targetVer.isInteger() && oldVer.isInteger() && targetVer.toInteger() >= oldVer.toInteger() ) {
+                                                // Skip if current version already up-to-date
+                                                return
                                              }
                                              // Find and replace secrets
                                              def sqlFiles = findFiles(glob: '*.sql')
@@ -295,6 +291,7 @@ pipeline {
                      }  // End directory
                      break
                   case "reset":
+                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -394,13 +391,12 @@ pipeline {
       success {
          echo '######### BUILD SUCCESS! #########'
          script {
-            try{
-               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
+            try {
                versionChanges.each { i ->
                   msgOut = msgOut + String.format( "| %-39s|%16s |%16s |\n", i.db_name, i.old_version, i.new_version)
                }
                echo msgOut
-            }catch(e){
+            } catch(e) {
                echo "${e}"
             }
          }
@@ -412,7 +408,6 @@ pipeline {
          echo '######### BUILD UNSTABLE #########'
          script {
             try {
-               def msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
                versionChanges.each { i ->
                   msgOut = msgOut + String.format( "| %-39s|%16s |%16s |\n", i.db_name, i.old_version, i.new_version)
                }
