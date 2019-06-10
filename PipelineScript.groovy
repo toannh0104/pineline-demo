@@ -188,8 +188,8 @@ pipeline {
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
+                                       sh ("cat ${artifact}/version_sql_after.txt")
                                        def newVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
-                                       sh ("echo ${newVer}")
                                        withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                                           // Store existing version
                                           def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
