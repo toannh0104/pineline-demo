@@ -194,7 +194,7 @@ pipeline {
                                           def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           echo "Old Verion: ${oldVer}"
                                           dbVersionInfo.old_version = extractVersionInfo(oldVer)
-                                          dbVersionInfo.new_version = newVer.isInteger() ? newVer : 'Error'
+                                          dbVersionInfo.new_version = newVer
                                           versionChanges << dbVersionInfo
                                        }
                                     }
@@ -204,6 +204,8 @@ pipeline {
                               echo "######### WARNING: cannot get current info of service. DB Operation will be skipped for <${svcName}> #########"
                               echo "${exc.toString()}"
                               sh "rm -rf ${svcName}-info.json"
+                              unprocessedSvcs << "${svcName}"
+                              currentBuild.result='UNSTABLE'
                            }
                         }
                      }  // End directory
@@ -254,10 +256,10 @@ pipeline {
                                              def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              echo "Old Verion: ${oldVer}"
                                              dbVersionInfo.old_version = extractVersionInfo(oldVer)
-                                             if (targetVer.isInteger() && oldVer.isInteger() && targetVer.toInteger() >= oldVer.toInteger() ) {
-                                                // Skip if current version already up-to-date
-                                                return
-                                             }
+                                             // if (targetVer.isInteger() && oldVer.isInteger() && targetVer.toInteger() >= oldVer.toInteger() ) {
+                                             //    // Skip if current version already up-to-date
+                                             //    return
+                                             // }
                                              // Find and replace secrets
                                              def sqlFiles = findFiles(glob: '*.sql')
                                              sqlFiles.each { f ->
@@ -318,6 +320,7 @@ pipeline {
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
+                                       def expectVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
                                        dir ("${artifact}/db_migration") {
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
