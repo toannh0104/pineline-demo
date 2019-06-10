@@ -195,10 +195,6 @@ pipeline {
                                           dbVersionInfo.old_version = extractVersionInfo(oldVer)
                                           dbVersionInfo.new_version = newVer
                                           versionChanges << dbVersionInfo
-                                          if (migrationStatus != 0) {
-                                             unprocessedSvcs << "${svcName}"
-                                             currentBuild.result='UNSTABLE'
-                                          }
                                        }
                                     }
                                  }
