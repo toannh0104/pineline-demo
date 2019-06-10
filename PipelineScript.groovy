@@ -108,7 +108,6 @@ pipeline {
             }
             
             dir("${env.TOOL_HOME_PATH}") {
-               d
                script {
                   // Download softwares
                   withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
