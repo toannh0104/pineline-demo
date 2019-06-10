@@ -67,8 +67,8 @@ pipeline {
    environment {
       // Global Variable Declartion
       TOOL_HOME_PATH='tools'
-      S3_APPCFG_ENDPOINT='https://s3-ap-southeast-1.amazonaws.com'
-      S3_APPCFG_REGION='ap-southeast-1'
+      S3_ENDPOINT='https://s3-ap-southeast-1.amazonaws.com'
+      S3_REGION='ap-southeast-1'
       S3_APPCFG_BUCKET='acm-eq-th-openshift-app-configs'
       S3_GOOSE_BUCKET='equator-bucket' //s3://equator-bucket/software/goose
       APP_CONFIG_PATH='appconfigs'
@@ -78,7 +78,7 @@ pipeline {
    }
    parameters {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging\nproduction', description: 'Select target database environment')
-      choice(name: 'Action', choices: 'Check\nUpgrade\nReset', description: 'Check: report current version compare to release information.\nUpgrade: Upgrade database to the latest released version.\nReset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
+      choice(name: 'Action', choices: 'check\nupgrade\nreset', description: 'check: report current version compare to release information.\nupgrade: Upgrade database to the latest released version.\nreset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'For security reason, by default, above services will be skipped.\nIf you want to restore specific database schema, you need to remove it out from the list.')
    }
    options {
@@ -110,7 +110,7 @@ pipeline {
             dir("${env.TOOL_HOME_PATH}") {
                script {
                   // Download softwares
-                  withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_APPCFG_ENDPOINT}", region: "${env.S3_APPCFG_REGION}") {
+                  withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
                      s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_GOOSE_BUCKET}", file: "goose", path: "software/goose", force: true)
                   }
                   // Test provided Database credential
@@ -182,7 +182,7 @@ pipeline {
                            if (fileExists("${svcName}-info.json")) {
                               def buildInfo = readJSON(file: "${svcName}-info.json")
                               def artifact = "${svcName}-${buildInfo.build.version}"
-                              withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_APPCFG_ENDPOINT}", region: "${env.S3_APPCFG_REGION}") {
+                              withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
                                  s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
                               }
                               sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
