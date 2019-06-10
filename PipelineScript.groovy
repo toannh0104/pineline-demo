@@ -194,7 +194,7 @@ pipeline {
                                           def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           echo "Old Verion: ${oldVer}"
                                           dbVersionInfo.old_version = extractVersionInfo(oldVer)
-                                          dbVersionInfo.new_version = newVer
+                                          dbVersionInfo.new_version = newVer.isInteger() ? newVer : 'Error'
                                           versionChanges << dbVersionInfo
                                        }
                                     }
