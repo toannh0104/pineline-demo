@@ -60,24 +60,25 @@ def svcs = [
    ]
 def unprocessedSvcs = []
 def versionChanges = []
-
+def dbUrl = ''
 pipeline {
    agent any
    // Environment
    environment {
       // Global Variable Declartion
-      TOOL_REPO_URL='https://bitbucket.org/ascendcorp/ami-equator-openshift-db-tool.git'
       TOOL_HOME_PATH='tools'
       S3_APPCFG_ENDPOINT='https://s3-ap-southeast-1.amazonaws.com'
       S3_APPCFG_REGION='ap-southeast-1'
       S3_APPCFG_BUCKET='acm-eq-th-openshift-app-configs'
+      S3_GOOSE_BUCKET='equator-bucket' //s3://equator-bucket/software/goose
       APP_CONFIG_PATH='appconfigs'
       VAULT_LEADER_URL='https://vault-cluster.common-cicd-platform.svc:8200/v1/sys/leader'
       KUBERNETES_APP_SCOPE='equator'
       KUBERNETES_APP_SVC_GROUP='default'
    }
    parameters {
-      choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
+      choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging\nproduction', description: 'Select target database environment')
+      action(name: 'Action', choices: 'Check\nUpgrade\nReset', description: 'Check: report current version compare to release information.\nUpgrade: Upgrade database to the latest released version.\nReset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\nloyalty\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'For security reason, by default, above services will be skipped.\nIf you want to restore specific database schema, you need to remove it out from the list.')
    }
    options {
@@ -108,9 +109,18 @@ pipeline {
             
             dir("${env.TOOL_HOME_PATH}") {
                script {
+                  // Download softwares
+                  withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_APPCFG_ENDPOINT}", region: "${env.S3_APPCFG_REGION}") {
+                     s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "goose", path: "software/goose", force: true)
+                  }
                   // Test provided Database credential
-                  def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-                  // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
+                  if (env.DatabaseEnvironment == "production") {
+                     dbUrl = "production-master-db.ascendmoney.internal:3306"
+                  } else {
+                     dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
+                  }
+                  // dbUrl = "10.14.255.3:3306" //Performance database of V-team
+                  
                   withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                      def dbTestStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                      if (dbTestStatus != 0) {
@@ -152,8 +162,6 @@ pipeline {
          }
          steps {
             script {
-               def dbUrl = "${env.DatabaseEnvironment}-master-db.ascendmoney-dev.internal:3306"
-               // def dbUrl = "10.14.255.3:3306" //Performance database of V-team
                dir ("${env.APP_CONFIG_PATH}") {
                   def skipList = []
                   env.SkipServices.split('\n').each { item ->

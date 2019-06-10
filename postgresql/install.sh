@@ -1,7 +1,9 @@
 #!/bin/sh
 
-SVR1_IP=192.168.0.164
+SVR1_IP=192.168.0.121
 SVR2_IP=192.168.0.174
+
+EQ_DATASTORE_PATH=/data/equator
 
 # Global variables
 export REPO_RPM_URL=https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
@@ -17,8 +19,8 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql11 postgresql11-server postgresql-libs pgdg-redhat-repo || true) &&
-        (rm -rf /var/lib/pgsql /usr/pgsql-11 || true) &&
+        (yum remove -y postgresql11-contrib postgresql11 postgresql11-server postgresql-libs pgdg-redhat-repo || true) &&
+        (rm -rf /var/lib/pgsql /usr/pgsql-11 $EQ_DATASTORE_PATH || true) &&
         (userdel -f postgres || true)
       "
       ;;
@@ -27,8 +29,8 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql10-server postgresql10 postgresql-libs pgdg-redhat-repo || true) &&
-        (rm -rf /var/lib/pgsql /usr/pgsql-10 || true) &&
+        (yum remove -y postgresql10-contrib postgresql10-server postgresql10 postgresql-libs pgdg-redhat-repo || true) &&
+        (rm -rf /var/lib/pgsql /usr/pgsql-10 $EQ_DATASTORE_PATH || true) &&
         (userdel -f postgres || true)
       "
       ;;
@@ -37,8 +39,8 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql96-server postgresql96 postgresql-libs pgdg-redhat-repo || true) &&
-        (rm -rf /var/lib/pgsql /usr/pgsql-9.6 || true) &&
+        (yum remove -y postgresql96-contrib postgresql96-server postgresql96 postgresql-libs pgdg-redhat-repo || true) &&
+        (rm -rf /var/lib/pgsql /usr/pgsql-9.6 $EQ_DATASTORE_PATH || true) &&
         (userdel -f postgres || true)
       "
       ;;
@@ -47,8 +49,8 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql--permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql95-server postgresql95 postgresql-libs pgdg-redhat-repo || true) &&
-        (rm -rf /var/lib/pgsql /usr/pgsql-9.5 || true) &&
+        (yum remove -y postgresql95-contrib postgresql95-server postgresql95 postgresql-libs pgdg-redhat-repo || true) &&
+        (rm -rf /var/lib/pgsql /usr/pgsql-9.5 $EQ_DATASTORE_PATH || true) &&
         (userdel -f postgres || true)
       "
       ;;
@@ -57,8 +59,8 @@ function cleanUp {
       ssh -t root@$1 "
         (firewall-cmd --remove-service=postgresql --permanent || true) &&
         firewall-cmd --reload &&
-        (yum remove -y postgresql94-server postgresql94 postgresql-libs pgdg-redhat-repo || true) &&
-        (rm -rf /var/lib/pgsql /usr/pgsql-9.4 || true) &&
+        (yum remove postgresql94-contrib -y postgresql94-server postgresql94 postgresql-libs pgdg-redhat-repo || true) &&
+        (rm -rf /var/lib/pgsql /usr/pgsql-9.4 $EQ_DATASTORE_PATH || true) &&
         (userdel -f postgres || true)
       "
       ;;
@@ -73,9 +75,8 @@ function install {
     11)
       # Install PostgreSQL 11
       ssh -t root@$1 "
-        (yum remove -y postgresql11-server postgresql11 pgdg-redhat-repo || true) &&
         yum install -y ${REPO_RPM_URL} && 
-        yum install -y postgresql11-server postgresql11 postgresql-libs-9.2.24 &&
+        yum install -y postgresql11-server postgresql11 postgresql11-contrib &&
         /usr/pgsql-11/bin/postgresql-11-setup initdb &&
         systemctl start postgresql-11 &&
         systemctl enable postgresql-11 &&
@@ -87,8 +88,8 @@ function install {
       # Install PostgreSQL 10
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql10 postgresql10-server &&
-        /usr/pgsql-10/bin/postgresql-10-setup initdb &&
+        yum install -y postgresql10-server postgresql10 postgresql10-contrib &&
+        /usr/pgsql-10/bin/postgresql-10-setup initdb -D $EQ_DATASTORE_PATH &&
         systemctl enable postgresql-10 &&
         systemctl start postgresql-10 &&
         firewall-cmd --add-service=postgresql --permanent && 
@@ -99,8 +100,8 @@ function install {
       # Install PostgreSQL 9.6
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql96 postgresql96-server &&
-        /usr/pgsql-9.6/bin/postgresql96-setup initdb &&
+        yum install -y postgresql96-server postgresql96 postgresql96-contrib &&
+        /usr/pgsql-9.6/bin/postgresql96-setup initdb -D $EQ_DATASTORE_PATH &&
         systemctl enable postgresql-9.6 &&
         systemctl start postgresql-9.6 &&
         firewall-cmd --add-service=postgresql --permanent &&
@@ -111,8 +112,8 @@ function install {
       # Install PostgreSQL 9.5
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql95 postgresql95-server &&
-        /usr/pgsql-9.5/bin/postgresql95-setup initdb &&
+        yum install -y postgresql95-server postgresql95 postgresql95-contrib &&
+        /usr/pgsql-9.5/bin/postgresql95-setup initdb -D $EQ_DATASTORE_PATH &&
         systemctl enable postgresql-9.5 &&
         systemctl start postgresql-9.5 &&
         firewall-cmd --add-service=postgresql --permanent &&
@@ -123,8 +124,8 @@ function install {
       # Install PostgreSQL 9.4
       ssh -t root@$1 "
         yum install -y ${REPO_RPM_URL} &&
-        yum install -y postgresql94 postgresql94-server &&
-        /usr/pgsql-9.4/bin/postgresql94-setup initdb &&
+        yum install -y postgresql94 postgresql94-server postgresql94-contrib &&
+        /usr/pgsql-9.4/bin/postgresql94-setup initdb -D $EQ_DATASTORE_PATH &&
         systemctl enable postgresql-9.4 &&
         systemctl start postgresql-9.4 &&
         firewall-cmd --add-service=postgresql --permanent &&
@@ -178,10 +179,24 @@ function config_basic {
   FILE_NAME="/var/lib/pgsql/${PGSQL_TARGETVER}/data/postgresql.conf"
   ssh -t root@$1 "
     if [ -f $FILE_NAME ]; then
-      $(configure listen_addresses \'*\');
+      $(configure listen_addresses "\'*\'");
       $(configure superuser_reserved_connections 3);
       $(configure max_connections 400);
-      $(configure max_connections 400);
+      $(configure log_line_prefix "\'%t %u %d '");
+    fi
+  "
+}
+
+##### function create_masterdb
+##### usage: create_masterdb <server_ip> <db_name> <username> <password>
+##### 
+function create_masterdb {
+  [[ $# -ne 4 ]] && { echo 'Usage: $0 server_ip db_name db_owner password' ; exit 1; }
+  FILE_NAME="/var/lib/pgsql/${PGSQL_TARGETVER}/data/postgresql.conf"
+  ssh -t root@$1 "
+    if [ -f $FILE_NAME ]; then
+      su - postgres;
+
     fi
   "
 }
@@ -221,20 +236,20 @@ function config_replica {
 
 #====================== MAIN script body =====================
 
-# STEP1: install PostgreSQL packages
+##### STEP1: install PostgreSQL packages
 #cleanUp $SVR1_IP
 #install $SVR1_IP
 
 #cleanUp $SVR2_IP
 #install $SVR2_IP
 
-# STEP2: Basic configuration
+##### STEP2: Basic configuration
 config_basic $SVR1_IP
-config_basic $SVR2_IP
+#config_basic $SVR2_IP
 
-# STEP3: Configure hot-standby replica
-config_replica master $SVR1_IP
-config_replica slave $SVR2_IP
+##### STEP3: Configure hot-standby replica
+#config_replica $SVR1_IP $SVR1_IP 
+
 
 config_apply $SVR1_IP
-config_apply $SVR2_IP
+#config_apply $SVR2_IP
