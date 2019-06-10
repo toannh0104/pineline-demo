@@ -113,7 +113,6 @@ pipeline {
                   withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
                      s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_GOOSE_BUCKET}", file: "goose", path: "software/goose", force: true)
                   }
-                  sh ("ls -al")
                   // Test provided Database credential
                   if (env.DatabaseEnvironment == "production") {
                      dbUrl = "production-master-db.ascendmoney.internal:3306"
@@ -123,7 +122,6 @@ pipeline {
                   // dbUrl = "10.14.255.3:3306" //Performance database of V-team
                   
                   withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
-                     sh ("echo ${dbUrl}")
                      def dbTestStatus = sh (script: "set +x; chmod +x goose; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/?rejectReadOnly=true' ping > /dev/null; set -x", returnStatus: true)
                      if (dbTestStatus != 0) {
                         echo '######### ERROR: Invalid DB username password #########'
@@ -163,91 +161,237 @@ pipeline {
             }
          }
          steps {
+            // Begin step
             script {
-               dir ("${env.APP_CONFIG_PATH}") {
-                  def skipList = []
-                  env.SkipServices.split('\n').each { item ->
-                     if(item?.trim()) {
-                        skipList << item.trim()
-                     }
-                  }
-                  // Get services version
-                  svcs.each { el ->
-                     def svcName = el.get("svcName", null)
-                     def dbName = el.get("dbName", null)
-                     try {
-                        if (skipList.contains(svcName) || dbName == null) {
-                           echo "######### INFO: Service ${svcName} is either skipped by request or has no database. No operation needed. #########"
-                        } else {
-                           def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
-                           sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
-                           if (fileExists("${svcName}-info.json")) {
-                              def buildInfo = readJSON(file: "${svcName}-info.json")
-                              def artifact = "${svcName}-${buildInfo.build.version}"
-                              withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
-                                 s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
-                              }
-                              sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
-                              // Check if service has DB script
-                              if(fileExists("${artifact}/version_sql_after.txt")) {
-                                 dir ("${artifact}/db_migration") {
-                                    def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
-                                    def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
-                                    def envData = ["ENV": "${env.DatabaseEnvironment}"]
-                                    vaultData = vaultData + envData
-                                    def keys = readJSON(file: "keys.json")
-                                    def keyList = []
-                                    keyList << "ENV"
-                                    keys.each { k ->
-                                       keyList << k.get('key')
+               // Begin Script
+               switch(env.Action) {
+                  case "check":
+                     dir ("${env.APP_CONFIG_PATH}") {
+                        // Begin directory
+                        // Get services version
+                        svcs.each { el ->
+                           def svcName = el.get("svcName", null)
+                           def dbName = el.get("dbName", null)
+                           try {
+                              if (dbName == null) {
+                                 echo "######### INFO: Service ${svcName} has no associated database. Skip!. #########"
+                              } else {
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
+                                 if (fileExists("${svcName}-info.json")) {
+                                    def buildInfo = readJSON(file: "${svcName}-info.json")
+                                    def artifact = "${svcName}-${buildInfo.build.version}"
+                                    withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
                                     }
-                                    withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
-                                       // Store existing version
-                                       def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
-                                       echo "Old Verion: ${oldVer}"
-                                       dbVersionInfo.old_version = extractVersionInfo(oldVer)
-
-                                       dir ("create-databases") {
-                                          def files = findFiles(glob: '*.sql')
-                                          files.each { f ->
-                                             def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
-                                             sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
-                                             sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
-                                             sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
+                                    sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
+                                    // Check if service has DB script
+                                    if(fileExists("${artifact}/version_sql_after.txt")) {
+                                       def newVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
+                                       withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
+                                          // Store existing version
+                                          def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                          echo "Old Verion: ${oldVer}"
+                                          dbVersionInfo.old_version = extractVersionInfo(oldVer)
+                                          dbVersionInfo.new_version = newVer
+                                          versionChanges << dbVersionInfo
+                                          if (migrationStatus != 0) {
+                                             unprocessedSvcs << "${svcName}"
+                                             currentBuild.result='UNSTABLE'
                                           }
-                                       }
-                                       // Find and replace secrets
-                                       def sqlFiles = findFiles(glob: '*.sql')
-                                       sqlFiles.each { f ->
-                                          def sql = readFile(file: "${f.name}", encoding: "utf-8")
-                                          sql = replaceSecrets(sql, keyList, vaultData)
-                                          writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
-                                       }
-                                       // Execute goose up migration
-                                       def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
-                                       def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
-                                       dbVersionInfo.new_version = extractVersionInfo(newVer)
-                                       versionChanges << dbVersionInfo
-                                       if (migrationStatus != 0) {
-                                          unprocessedSvcs << "${svcName}"
-                                          currentBuild.result='UNSTABLE'
                                        }
                                     }
                                  }
                               }
+                           } catch (exc) {
+                              echo "######### WARNING: cannot get current info of service. DB Operation will be skipped for <${svcName}> #########"
+                              echo "${exc.toString()}"
+                              sh "rm -rf ${svcName}-info.json"
+                              unprocessedSvcs << "${svcName}"
+                              currentBuild.result='UNSTABLE'
                            }
                         }
-                     } catch (exc) {
-                        echo "######### WARNING: cannot get current info of service. DB Operation will be skipped for <${svcName}> #########"
-                        echo "${exc.toString()}"
-                        sh "rm -rf ${svcName}-info.json"
-                        unprocessedSvcs << "${svcName}"
-                        currentBuild.result='UNSTABLE'
-                     }
-                  }
+                     }  // End directory
+                     break
+                  case "upgrade":
+                     dir ("${env.APP_CONFIG_PATH}") {
+                        // Begin directory
+                        def skipList = []
+                        env.SkipServices.split('\n').each { item ->
+                           if(item?.trim()) {
+                              skipList << item.trim()
+                           }
+                        }
+                        // Get services version
+                        svcs.each { el ->
+                           def svcName = el.get("svcName", null)
+                           def dbName = el.get("dbName", null)
+                           try {
+                              if (skipList.contains(svcName) || dbName == null) {
+                                 echo "######### INFO: Service ${svcName} is either skipped by request or has no associated database. No operation needed. #########"
+                              } else {
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
+                                 if (fileExists("${svcName}-info.json")) {
+                                    def buildInfo = readJSON(file: "${svcName}-info.json")
+                                    def artifact = "${svcName}-${buildInfo.build.version}"
+                                    withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                    }
+                                    sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
+                                    // Check if service has DB script
+                                    if(fileExists("${artifact}/version_sql_after.txt")) {
+                                       dir ("${artifact}/db_migration") {
+                                          def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
+                                          def envData = ["ENV": "${env.DatabaseEnvironment}"]
+                                          vaultData = vaultData + envData
+                                          def keys = readJSON(file: "keys.json")
+                                          def keyList = []
+                                          keyList << "ENV"
+                                          keys.each { k ->
+                                             keyList << k.get('key')
+                                          }
+                                          withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
+                                             // Store existing version
+                                             def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                             echo "Old Verion: ${oldVer}"
+                                             dbVersionInfo.old_version = extractVersionInfo(oldVer)
+
+                                             dir ("create-databases") {
+                                                def files = findFiles(glob: '*.sql')
+                                                files.each { f ->
+                                                   def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
+                                                   sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
+                                                   sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
+                                                   sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
+                                                }
+                                             }
+                                             // Find and replace secrets
+                                             def sqlFiles = findFiles(glob: '*.sql')
+                                             sqlFiles.each { f ->
+                                                def sql = readFile(file: "${f.name}", encoding: "utf-8")
+                                                sql = replaceSecrets(sql, keyList, vaultData)
+                                                writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
+                                             }
+                                             // Execute goose up migration
+                                             def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
+                                             def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                             dbVersionInfo.new_version = extractVersionInfo(newVer)
+                                             versionChanges << dbVersionInfo
+                                             if (migrationStatus != 0) {
+                                                unprocessedSvcs << "${svcName}"
+                                                currentBuild.result='UNSTABLE'
+                                             }
+                                          }
+                                       }
+                                    }
+                                 }
+                              }
+                           } catch (exc) {
+                              echo "######### WARNING: cannot get current info of service. DB Operation will be skipped for <${svcName}> #########"
+                              echo "${exc.toString()}"
+                              sh "rm -rf ${svcName}-info.json"
+                              unprocessedSvcs << "${svcName}"
+                              currentBuild.result='UNSTABLE'
+                           }
+                        }
+                     }  // End directory
+                     break
+                  case "reset":
+                     dir ("${env.APP_CONFIG_PATH}") {
+                        // Begin directory
+                        def skipList = []
+                        env.SkipServices.split('\n').each { item ->
+                           if(item?.trim()) {
+                              skipList << item.trim()
+                           }
+                        }
+                        // Get services version
+                        svcs.each { el ->
+                           def svcName = el.get("svcName", null)
+                           def dbName = el.get("dbName", null)
+                           try {
+                              if (skipList.contains(svcName) || dbName == null) {
+                                 echo "######### INFO: Service ${svcName} is either skipped by request or has no associated database. No operation needed. #########"
+                              } else {
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
+                                 if (fileExists("${svcName}-info.json")) {
+                                    def buildInfo = readJSON(file: "${svcName}-info.json")
+                                    def artifact = "${svcName}-${buildInfo.build.version}"
+                                    withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                    }
+                                    sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
+                                    // Check if service has DB script
+                                    if(fileExists("${artifact}/version_sql_after.txt")) {
+                                       dir ("${artifact}/db_migration") {
+                                          def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
+                                          def envData = ["ENV": "${env.DatabaseEnvironment}"]
+                                          vaultData = vaultData + envData
+                                          def keys = readJSON(file: "keys.json")
+                                          def keyList = []
+                                          keyList << "ENV"
+                                          keys.each { k ->
+                                             keyList << k.get('key')
+                                          }
+                                          withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
+                                             // Store existing version
+                                             def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                             echo "Old Verion: ${oldVer}"
+                                             dbVersionInfo.old_version = extractVersionInfo(oldVer)
+
+                                             dir ("create-databases") {
+                                                def files = findFiles(glob: '*.sql')
+                                                files.each { f ->
+                                                   def sqlDB = readFile(file: "${f.name}", encoding: "utf-8")
+                                                   sqlDB = replaceSecrets(sqlDB, keyList, vaultData)
+                                                   sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"DROP DATABASE IF EXISTS ${dbName}_${env.DatabaseEnvironment};\" > /dev/null; set -x", returnStatus: true)
+                                                   sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/' runsql \"${sqlDB};\" > /dev/null; set -x", returnStatus: true)
+                                                }
+                                             }
+                                             // Find and replace secrets
+                                             def sqlFiles = findFiles(glob: '*.sql')
+                                             sqlFiles.each { f ->
+                                                def sql = readFile(file: "${f.name}", encoding: "utf-8")
+                                                sql = replaceSecrets(sql, keyList, vaultData)
+                                                writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
+                                             }
+                                             // Execute goose up migration
+                                             def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
+                                             def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
+                                             dbVersionInfo.new_version = extractVersionInfo(newVer)
+                                             versionChanges << dbVersionInfo
+                                             if (migrationStatus != 0) {
+                                                unprocessedSvcs << "${svcName}"
+                                                currentBuild.result='UNSTABLE'
+                                             }
+                                          }
+                                       }
+                                    }
+                                 }
+                              }
+                           } catch (exc) {
+                              echo "######### WARNING: cannot get current info of service. DB Operation will be skipped for <${svcName}> #########"
+                              echo "${exc.toString()}"
+                              sh "rm -rf ${svcName}-info.json"
+                              unprocessedSvcs << "${svcName}"
+                              currentBuild.result='UNSTABLE'
+                           }
+                        }
+                     }  // End directory
+                     break
+                  default:
+                     echo "######### ERROR: Invalid Action, must be either Check, Upgrade or Reset #########"
+                     echo "Selected action: ${env.Action}"
+                     currentBuild.result = 'FAILED'
+                     skipRemainingStages = true
+                     break
                }
-            }
-         }
+            } // End script
+         } // End step
       }
    }
    post {
