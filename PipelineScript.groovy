@@ -113,6 +113,7 @@ pipeline {
                   withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
                      s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_GOOSE_BUCKET}", file: "goose", path: "software/goose", force: true)
                   }
+                  sh ("ls -al")
                   // Test provided Database credential
                   if (env.DatabaseEnvironment == "production") {
                      dbUrl = "production-master-db.ascendmoney.internal:3306"
