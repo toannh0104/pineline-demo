@@ -401,7 +401,7 @@ pipeline {
             try {
                if(env.Action == "check") {
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.new_version)
+                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.expect_version)
                   }   
                } else {
                   versionChanges.each { i ->
@@ -423,7 +423,7 @@ pipeline {
             try {
                if(env.Action == "check") {
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.new_version)
+                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.expect_version)
                   }   
                } else {
                   versionChanges.each { i ->
