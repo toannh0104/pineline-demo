@@ -190,7 +190,7 @@ pipeline {
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
                                        def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
-                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/[^0-9]//g; set -x", returnStdout: true).trim()
+                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/_.*//g | sed -e s/^0*//g; set -x", returnStdout: true).trim()
                                        }
                                        withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                                           // Store existing version
@@ -244,7 +244,7 @@ pipeline {
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
                                        def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
-                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/[^0-9]//g; set -x", returnStdout: true).trim()
+                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/_.*//g | sed -e s/^0*//g; set -x", returnStdout: true).trim()
 
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
@@ -324,7 +324,7 @@ pipeline {
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
                                        def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
-                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/[^0-9]//g; set -x", returnStdout: true).trim()
+                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/_.*//g | sed -e s/^0*//g; set -x", returnStdout: true).trim()
 
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
