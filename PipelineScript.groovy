@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-
+// This branch [master] is specified to local countries. Equator must use [equator] branch instead
 def replaceSecrets(src, keys, secretMap) {
    if(src ==null) return null
    if(keys != null && secretMap != null) {
@@ -39,7 +39,7 @@ def svcs = [
       [svcName: 'fraud-consultant', dbName: 'fraud_consultant'],
       // [svcName: 'housekeeping', dbName: null],
       [svcName: 'inventory', dbName: 'inventory'],
-      [svcName: 'loyalty', dbName: 'loyalty'],
+      // [svcName: 'loyalty', dbName: 'loyalty'],
       [svcName: 'otp-management', dbName: 'otp_management'],
       [svcName: 'password-center', dbName: 'password_center'], 
       [svcName: 'payment', dbName: 'payment'],
@@ -166,7 +166,7 @@ pipeline {
                // Begin Script
                switch(env.Action) {
                   case "check":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Curent ver. --|-- Target ver. --|\n"
+                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Curent version --|-- Expected version |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         // Get services version
@@ -177,7 +177,7 @@ pipeline {
                               if (dbName == null) {
                                  echo "######### INFO: Service ${svcName} has no associated database. Skip!. #########"
                               } else {
-                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null, expect_version: null]
                                  sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
                                  if (fileExists("${svcName}-info.json")) {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
@@ -188,14 +188,16 @@ pipeline {
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
-                                       sh ("cat ${artifact}/version_sql_after.txt")
-                                       def newVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
+                                       def expectVer = 'unknown'
+                                       dir ("${artifact}/db_migration") {
+                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/[^0-9]//g; set -x", returnStdout: true).trim()
+                                       }
                                        withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                                           // Store existing version
                                           def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           echo "Old Verion: ${oldVer}"
                                           dbVersionInfo.old_version = extractVersionInfo(oldVer)
-                                          dbVersionInfo.new_version = newVer
+                                          dbVersionInfo.expect_version = expectVer
                                           versionChanges << dbVersionInfo
                                        }
                                     }
@@ -212,7 +214,7 @@ pipeline {
                      }  // End directory
                      break
                   case "upgrade":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
+                     msgOut = "Migration status:\n|-- Database ----------------------------|---- Old version ---|-- Applied version -|-- Expected version |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -240,8 +242,10 @@ pipeline {
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
-                                       def targetVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
+                                       def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
+                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/[^0-9]//g; set -x", returnStdout: true).trim()
+
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
                                           def envData = ["ENV": "${env.DatabaseEnvironment}"]
@@ -257,10 +261,6 @@ pipeline {
                                              def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              echo "Old Verion: ${oldVer}"
                                              dbVersionInfo.old_version = extractVersionInfo(oldVer)
-                                             // if (targetVer.isInteger() && oldVer.isInteger() && targetVer.toInteger() >= oldVer.toInteger() ) {
-                                             //    // Skip if current version already up-to-date
-                                             //    return
-                                             // }
                                              // Find and replace secrets
                                              def sqlFiles = findFiles(glob: '*.sql')
                                              sqlFiles.each { f ->
@@ -272,6 +272,7 @@ pipeline {
                                              def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
                                              def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              dbVersionInfo.new_version = extractVersionInfo(newVer)
+                                             dbVersionInfo.expect_version = expectVer
                                              versionChanges << dbVersionInfo
                                              if (migrationStatus != 0) {
                                                 unprocessedSvcs << "${svcName}"
@@ -293,7 +294,7 @@ pipeline {
                      }  // End directory
                      break
                   case "reset":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Old version --|-- New version --|\n"
+                     msgOut = "Migration status:\n|-- Database ----------------------------|---- Old version ---|-- Applied version -|-- Expected version |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -310,7 +311,7 @@ pipeline {
                               if (skipList.contains(svcName) || dbName == null) {
                                  echo "######### INFO: Service ${svcName} is either skipped by request or has no associated database. No operation needed. #########"
                               } else {
-                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null, expect_version: null]
                                  sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
                                  if (fileExists("${svcName}-info.json")) {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
@@ -321,8 +322,10 @@ pipeline {
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
-                                       def expectVer = sh (script: "set +x; cat ${artifact}/version_sql_after.txt; set -x", returnStdout: true).trim()
+                                       def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
+                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/[^0-9]//g; set -x", returnStdout: true).trim()
+
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
                                           def envData = ["ENV": "${env.DatabaseEnvironment}"]
@@ -359,6 +362,7 @@ pipeline {
                                              def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
                                              def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              dbVersionInfo.new_version = extractVersionInfo(newVer)
+                                             dbVersionInfo.expect_version = expectVer
                                              versionChanges << dbVersionInfo
                                              if (migrationStatus != 0) {
                                                 unprocessedSvcs << "${svcName}"
@@ -395,8 +399,14 @@ pipeline {
          echo '######### BUILD SUCCESS! #########'
          script {
             try {
-               versionChanges.each { i ->
-                  msgOut = msgOut + String.format( "| %-39s|%16s |%16s |\n", i.db_name, i.old_version, i.new_version)
+               if(env.Action == "check") {
+                  versionChanges.each { i ->
+                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.new_version)
+                  }   
+               } else {
+                  versionChanges.each { i ->
+                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |%19s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
+                  }
                }
                echo msgOut
             } catch(e) {
@@ -411,8 +421,14 @@ pipeline {
          echo '######### BUILD UNSTABLE #########'
          script {
             try {
-               versionChanges.each { i ->
-                  msgOut = msgOut + String.format( "| %-39s|%16s |%16s |\n", i.db_name, i.old_version, i.new_version)
+               if(env.Action == "check") {
+                  versionChanges.each { i ->
+                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.new_version)
+                  }   
+               } else {
+                  versionChanges.each { i ->
+                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |%19s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
+                  }
                }
                echo msgOut
                
