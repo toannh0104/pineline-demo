@@ -62,6 +62,7 @@ def unprocessedSvcs = []
 def versionChanges = []
 def dbUrl = ''
 def msgOut = ''
+def commandGetLastMigrationNumber = 'ls *.sql | sed -e s/_.*//g | sed -e s/^0*//g | sort -n | tail -1'
 pipeline {
    agent any
    // Environment
@@ -166,7 +167,7 @@ pipeline {
                // Begin Script
                switch(env.Action) {
                   case "check":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|-- Curent version --|-- Expected version |\n"
+                     msgOut = "Migration status:\n|-- Database ----------------------------|- Current Ver -|- Expected Ver |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         // Get services version
@@ -190,7 +191,7 @@ pipeline {
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
                                        def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
-                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/_.*//g | sed -e s/^0*//g; set -x", returnStdout: true).trim()
+                                          expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        }
                                        withCredentials([usernameColonPassword(credentialsId: 'eqDbMasterNonProdCred', variable: 'DbCred')]) {
                                           // Store existing version
@@ -214,7 +215,7 @@ pipeline {
                      }  // End directory
                      break
                   case "upgrade":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|---- Old version ---|-- Applied version -|-- Expected version |\n"
+                     msgOut = "Migration status:\n|-- Database -----------------------|--- Old Ver ---|- Applied Ver -|- Expected Ver |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -244,7 +245,7 @@ pipeline {
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
                                        def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
-                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/_.*//g | sed -e s/^0*//g; set -x", returnStdout: true).trim()
+                                          expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
 
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
@@ -294,7 +295,7 @@ pipeline {
                      }  // End directory
                      break
                   case "reset":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|---- Old version ---|-- Applied version -|-- Expected version |\n"
+                     msgOut = "Migration status:\n|-- Database -----------------------|--- Old Ver ---|- Applied Ver -|- Expected Ver |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -324,7 +325,7 @@ pipeline {
                                     if(fileExists("${artifact}/version_sql_after.txt")) {
                                        def expectVer = 'unknown'
                                        dir ("${artifact}/db_migration") {
-                                          expectVer = sh (script: "set +x; ls *.sql | tail -1 | sed -e s/_.*//g | sed -e s/^0*//g; set -x", returnStdout: true).trim()
+                                          expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
 
                                           def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
@@ -401,11 +402,11 @@ pipeline {
             try {
                if(env.Action == "check") {
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.expect_version)
+                     msgOut = msgOut + String.format( "| %-39s|%14s |%14s |\n", i.db_name, i.old_version, i.expect_version)
                   }   
                } else {
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |%19s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
+                     msgOut = msgOut + String.format( "| %-34s|%14s |%14s |%14s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
                   }
                }
                echo msgOut
@@ -423,11 +424,11 @@ pipeline {
             try {
                if(env.Action == "check") {
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |\n", i.db_name, i.old_version, i.expect_version)
+                     msgOut = msgOut + String.format( "| %-39s|%14s |%14s |\n", i.db_name, i.old_version, i.expect_version)
                   }   
                } else {
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-39s|%19s |%19s |%19s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
+                     msgOut = msgOut + String.format( "| %-34s|%14s |%14s |%14s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
                   }
                }
                echo msgOut
