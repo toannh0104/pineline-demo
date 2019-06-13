@@ -404,7 +404,7 @@ pipeline {
       success {
          script {
             try {
-               msgOut = msgOut + 'Database Migration status: Succesfully\n'
+               msgOut = 'Database Migration status: Succesfully\n' + msgOut
                if(env.Action == "check") {
                   versionChanges.each { i ->
                      msgOut = msgOut + String.format( "| %-39s|%14s |%14s |\n", i.db_name, i.old_version, i.expect_version)
@@ -428,7 +428,7 @@ pipeline {
       unstable {
          script {
             try {
-               msgOut = msgOut + 'Database Migration status: Incomplete\n'
+               msgOut = 'Database Migration status: Incomplete\n' + msgOut
                if(env.Action == "check") {
                   versionChanges.each { i ->
                      msgOut = msgOut + String.format( "| %-39s|%14s |%14s |\n", i.db_name, i.old_version, i.expect_version)
