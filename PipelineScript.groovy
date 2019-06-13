@@ -167,7 +167,7 @@ pipeline {
                // Begin Script
                switch(env.Action) {
                   case "check":
-                     msgOut = "Migration status:\n|-- Database ----------------------------|- Current Ver -|- Expected Ver |\n"
+                     msgOut = "|-- Database ----------------------------|- Current Ver -|- Expected Ver |\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         // Get services version
@@ -199,6 +199,9 @@ pipeline {
                                           echo "Old Verion: ${oldVer}"
                                           dbVersionInfo.old_version = extractVersionInfo(oldVer)
                                           dbVersionInfo.expect_version = expectVer
+                                          if (dbVersionInfo.old_version != dbVersionInfo.expect_version) {
+                                             dbVersionInfo.db_name = dbVersionInfo.db_name + ' *'
+                                          }
                                           versionChanges << dbVersionInfo
                                        }
                                     }
@@ -215,7 +218,7 @@ pipeline {
                      }  // End directory
                      break
                   case "upgrade":
-                     msgOut = "Migration status:\n|-- Database -----------------------|--- Old Ver ---|- Applied Ver -|- Expected Ver |\n"
+                     msgOut = "|-- Database -----------------------|-- Old Ver -| Applied Ver|Expected Ver|\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -274,11 +277,12 @@ pipeline {
                                              def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              dbVersionInfo.new_version = extractVersionInfo(newVer)
                                              dbVersionInfo.expect_version = expectVer
-                                             versionChanges << dbVersionInfo
-                                             if (migrationStatus != 0) {
+                                             if (migrationStatus != 0 || dbVersionInfo.new_version != dbVersionInfo.expect_version) {
+                                                dbVersionInfo.db_name = dbVersionInfo.db_name + ' *'
                                                 unprocessedSvcs << "${svcName}"
                                                 currentBuild.result='UNSTABLE'
                                              }
+                                             versionChanges << dbVersionInfo
                                           }
                                        }
                                     }
@@ -295,7 +299,7 @@ pipeline {
                      }  // End directory
                      break
                   case "reset":
-                     msgOut = "Migration status:\n|-- Database -----------------------|--- Old Ver ---|- Applied Ver -|- Expected Ver |\n"
+                     msgOut = "|-- Database -----------------------|-- Old Ver -| Applied Ver|Expected Ver|\n"
                      dir ("${env.APP_CONFIG_PATH}") {
                         // Begin directory
                         def skipList = []
@@ -364,11 +368,12 @@ pipeline {
                                              def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                              dbVersionInfo.new_version = extractVersionInfo(newVer)
                                              dbVersionInfo.expect_version = expectVer
-                                             versionChanges << dbVersionInfo
-                                             if (migrationStatus != 0) {
+                                             if (migrationStatus != 0 || dbVersionInfo.new_version != dbVersionInfo.expect_version) {
+                                                dbVersionInfo.db_name = dbVersionInfo.db_name + ' *'
                                                 unprocessedSvcs << "${svcName}"
                                                 currentBuild.result='UNSTABLE'
                                              }
+                                             versionChanges << dbVersionInfo
                                           }
                                        }
                                     }
@@ -397,17 +402,19 @@ pipeline {
    }
    post {
       success {
-         echo '######### BUILD SUCCESS! #########'
          script {
             try {
+               msgOut = msgOut + 'Database Migration status: Succesfully\n'
                if(env.Action == "check") {
                   versionChanges.each { i ->
                      msgOut = msgOut + String.format( "| %-39s|%14s |%14s |\n", i.db_name, i.old_version, i.expect_version)
-                  }   
+                  }
+                  msgOut = msgOut + '|----------------------------------------|---------------|---------------|'
                } else {
                   versionChanges.each { i ->
                      msgOut = msgOut + String.format( "| %-34s|%14s |%14s |%14s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
                   }
+                  msgOut = msgOut + '|-----------------------------------|------------|------------|------------|'
                }
                echo msgOut
             } catch(e) {
@@ -419,17 +426,19 @@ pipeline {
          echo '######### BUILD FAILED! #########'
       }
       unstable {
-         echo '######### BUILD UNSTABLE #########'
          script {
             try {
+               msgOut = msgOut + 'Database Migration status: Incomplete\n'
                if(env.Action == "check") {
                   versionChanges.each { i ->
                      msgOut = msgOut + String.format( "| %-39s|%14s |%14s |\n", i.db_name, i.old_version, i.expect_version)
-                  }   
+                  }
+                  msgOut = msgOut + '|----------------------------------------|---------------|---------------|'
                } else {
                   versionChanges.each { i ->
                      msgOut = msgOut + String.format( "| %-34s|%14s |%14s |%14s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
                   }
+                  msgOut = msgOut + '|-----------------------------------|------------|------------|------------|'
                }               
                echo msgOut
                
