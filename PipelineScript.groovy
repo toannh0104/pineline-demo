@@ -423,9 +423,13 @@ pipeline {
                                        def vaultData = null
                                        if (env.VAULT_SECRET_API_VERSION == 1) {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          echo "${vaultTokenInfo.auth.client_token} ${vaultLeader}"
+                                          echo "${vaultDataJson}"
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/data/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          echo "${vaultTokenInfo.auth.client_token} ${vaultLeader}"
+                                          echo "${vaultDataJson}"
                                           vaultData = readJSON(text: "${vaultDataJson}").data.data
                                        }
                                        def envData = ["ENV": "${env.DatabaseEnvironment}"]
