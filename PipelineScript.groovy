@@ -74,7 +74,7 @@ pipeline {
       S3_APPCFG_BUCKET='acm-eq-th-openshift-app-configs'
       S3_GOOSE_BUCKET='equator-bucket' //s3://equator-bucket/software/goose
       APP_CONFIG_PATH='appconfigs'
-      VAULT_SECRET_API_VERSION=2
+      VAULT_SECRET_API_VERSION=1
       VAULT_LEADER_V1_URL = 'https://vault-cluster.common-cicd-platform.svc:8200/v1/sys/leader'
       KUBERNETES_APP_SCOPE='equator'
       KUBERNETES_APP_SVC_GROUP='default'
