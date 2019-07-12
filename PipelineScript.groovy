@@ -21,8 +21,8 @@ def extractVersionInfo(str) {
 }
 
 def skipRemainingStages = false
-def vaultLeaderInfo = null
 def vaultTokenInfo = null
+def vaultLeader = null
 def svcs = [
       [svcName: 'agent', dbName: 'agent'],
       [svcName: 'ami-admin-portal', dbName: 'admin_portal'],
@@ -74,7 +74,8 @@ pipeline {
       S3_APPCFG_BUCKET='acm-eq-th-openshift-app-configs'
       S3_GOOSE_BUCKET='equator-bucket' //s3://equator-bucket/software/goose
       APP_CONFIG_PATH='appconfigs'
-      VAULT_LEADER_URL='https://vault-cluster.common-cicd-platform.svc:8200/v1/sys/leader'
+      VAULT_SECRET_API_VERSION=2
+      VAULT_LEADER_V1_URL = 'https://vault-cluster.common-cicd-platform.svc:8200/v1/sys/leader'
       KUBERNETES_APP_SCOPE='equator'
       KUBERNETES_APP_SVC_GROUP='default'
    }
@@ -140,10 +141,15 @@ pipeline {
                // Prepare for Vault fetching
                withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
                   try{
-                     def VAULT_LEADER_RAW = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_URL}; set -x;", returnStdout: true).trim()
-                     vaultLeaderInfo = readJSON(text: "${VAULT_LEADER_RAW}")
-                     def VAULT_TOKEN_RAW = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
-                     vaultTokenInfo = readJSON(text: "${VAULT_TOKEN_RAW}")
+                     if (env.VAULT_SECRET_API_VERSION == 1) {
+                        def vaultLeaderInfoJson = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_V1_URL}; set -x;", returnStdout: true).trim()
+                        def vaultLeaderInfo = readJSON(text: "${vaultLeaderInfoJson}")
+                        vaultLeader = vaultLeaderInfo.leader_cluster_address
+                     } else {
+                        vaultLeader = 'https://vault-cluster-01.common-cicd-platform.svc:8200'
+                     }
+                     def vaultTokenInfoJson = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
+                     vaultTokenInfo = readJSON(text: "${vaultTokenInfoJson}")
                   } catch (err) {
                      echo "######### ERROR: cannot fetch Vault for environment <${env.DatabaseEnvironment}> #########"
                      echo "${err.toString()}"
@@ -246,9 +252,14 @@ pipeline {
                                     def expectVer = 'unknown'
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
-
-                                       def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
-                                       def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
+                                       def vaultData = null
+                                       if (env.VAULT_SECRET_API_VERSION == 1) {
+                                          def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          vaultData = readJSON(text: "${vaultDataJson}").data
+                                       } else {
+                                          def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/data/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          vaultData = readJSON(text: "${vaultDataJson}").data.data
+                                       }
                                        def envData = ["ENV": "${env.DatabaseEnvironment}"]
                                        vaultData = vaultData + envData
                                        def keys = readJSON(file: "keys.json")
@@ -325,9 +336,14 @@ pipeline {
                                     def expectVer = 'unknown'
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
-
-                                       def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
-                                       def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
+                                       def vaultData = null
+                                       if (env.VAULT_SECRET_API_VERSION == 1) {
+                                          def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          vaultData = readJSON(text: "${vaultDataJson}").data
+                                       } else {
+                                          def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/data/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          vaultData = readJSON(text: "${vaultDataJson}").data.data
+                                       }
                                        def envData = ["ENV": "${env.DatabaseEnvironment}"]
                                        vaultData = vaultData + envData
                                        def keys = readJSON(file: "keys.json")
@@ -404,9 +420,14 @@ pipeline {
                                     def expectVer = 'unknown'
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
-
-                                       def VAULT_DATA_RAW = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeaderInfo.leader_cluster_address}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
-                                       def vaultData = readJSON(text: "${VAULT_DATA_RAW}").data
+                                       def vaultData = null
+                                       if (env.VAULT_SECRET_API_VERSION == 1) {
+                                          def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          vaultData = readJSON(text: "${vaultDataJson}").data
+                                       } else {
+                                          def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/data/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
+                                          vaultData = readJSON(text: "${vaultDataJson}").data.data
+                                       }
                                        def envData = ["ENV": "${env.DatabaseEnvironment}"]
                                        vaultData = vaultData + envData
                                        def keys = readJSON(file: "keys.json")
