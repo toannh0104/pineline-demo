@@ -5,7 +5,7 @@ def replaceSecrets(src, keys, secretMap) {
    if(keys != null && secretMap != null) {
       keys.each { k ->
          def val = secretMap.get(k, null)
-         val = val.replaceAll("\r\n|\n\r|\n|\r","\\r") 
+         val = val.replaceAll("\r\n|\n\r|\n|\r","\\\\n") 
          def tmp = src.replaceAll("#${k}#", val)
          src = tmp
       }
