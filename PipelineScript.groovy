@@ -150,8 +150,11 @@ pipeline {
                         vaultLeader = 'https://vault-cluster-01.common-cicd-platform.svc:8200'
                      }
                      def vaultTokenInfoJson = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
-                     echo "vaultTokenInfoJson: ${vaultTokenInfoJson}"
                      vaultTokenInfo = readJSON(text: "${vaultTokenInfoJson}")
+                     if(vaultTokenInfo.hasProperty('errors') && vaultTokenInfo.errors) {
+                        error "Vault processing failed, errors: ${vaultTokenInfo}"
+                     }
+                     
                   } catch (err) {
                      echo "######### ERROR: cannot fetch Vault for environment <${env.DatabaseEnvironment}> #########"
                      echo "${err.toString()}"
