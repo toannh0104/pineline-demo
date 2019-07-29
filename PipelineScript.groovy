@@ -75,13 +75,13 @@ pipeline {
       S3_APPCFG_BUCKET='acm-eq-th-openshift-app-configs'
       S3_GOOSE_BUCKET='equator-bucket' //s3://equator-bucket/software/goose
       APP_CONFIG_PATH='appconfigs'
-      VAULT_SECRET_API_VERSION=1
       VAULT_LEADER_V1_URL = 'https://vault-cluster.common-cicd-platform.svc:8200/v1/sys/leader'
       KUBERNETES_APP_SCOPE='equator'
       KUBERNETES_APP_SVC_GROUP='default'
    }
    parameters {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
+      choice(name: 'VaultAPIVersion', choices: '1\n2', description: 'Select Vault API Version (default 1 for pipeline library < 1.7.1)')
       choice(name: 'Action', choices: 'check\nupgrade\ndowngrade\nreset', description: 'check: report current version compare to release information.\nupgrade: Upgrade database to the latest released version without losing user data.\ndowngrade: Downgrade database to the version coresponding current running service.\nreset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
    }
@@ -142,7 +142,7 @@ pipeline {
                // Prepare for Vault fetching
                withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
                   try{
-                     if (env.VAULT_SECRET_API_VERSION == 1) {
+                     if (env.VaultAPIVersion == 1) {
                         def vaultLeaderInfoJson = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_V1_URL}; set -x;", returnStdout: true).trim()
                         def vaultLeaderInfo = readJSON(text: "${vaultLeaderInfoJson}")
                         echo "Vault leader JSON: ${vaultLeaderInfo}"
@@ -256,7 +256,7 @@ pipeline {
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        def vaultData = null
-                                       if (env.VAULT_SECRET_API_VERSION == 1) {
+                                       if (env.VaultAPIVersion == 1) {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
@@ -340,7 +340,7 @@ pipeline {
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        def vaultData = null
-                                       if (env.VAULT_SECRET_API_VERSION == 1) {
+                                       if (env.VaultAPIVersion == 1) {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
@@ -424,7 +424,7 @@ pipeline {
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        def vaultData = null
-                                       if (env.VAULT_SECRET_API_VERSION == 1) {
+                                       if (env.VaultAPIVersion == 1) {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
