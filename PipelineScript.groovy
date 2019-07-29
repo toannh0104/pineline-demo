@@ -139,24 +139,26 @@ pipeline {
             script {
                def eqVaultCred = "eqVaultCred${env.DatabaseEnvironment}"
                // Prepare for Vault fetching
-               withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
-                  try{
-                     if (env.VaultAPIVersion == '1') {
-                        def vaultLeaderInfoJson = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_V1_URL}; set -x;", returnStdout: true).trim()
-                        echo "Vault leader JSON: ${vaultLeaderInfoJson}"
-                        def vaultLeaderInfo = readJSON(text: "${vaultLeaderInfoJson}")
-                        vaultLeader = vaultLeaderInfo.leader_cluster_address
-                     } else {
-                        vaultLeader = 'https://vault-cluster-01.common-cicd-platform.svc:8200'
+               if(env.Action != 'check'){
+                  withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
+                     try{
+                        if (env.VaultAPIVersion == '1') {
+                           def vaultLeaderInfoJson = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_V1_URL}; set -x;", returnStdout: true).trim()
+                           echo "Vault leader JSON: ${vaultLeaderInfoJson}"
+                           def vaultLeaderInfo = readJSON(text: "${vaultLeaderInfoJson}")
+                           vaultLeader = vaultLeaderInfo.leader_cluster_address
+                        } else {
+                           vaultLeader = 'https://vault-cluster-01.common-cicd-platform.svc:8200'
+                        }
+                        def vaultTokenInfoJson = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
+                        vaultTokenInfo = readJSON(text: "${vaultTokenInfoJson}")
+                     } catch (err) {
+                        echo "######### ERROR: cannot fetch Vault for environment <${env.DatabaseEnvironment}> #########"
+                        echo "${err.toString()}"
+                        currentBuild.result = 'FAILED'
+                        skipRemainingStages = true
+                        return
                      }
-                     def vaultTokenInfoJson = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
-                     vaultTokenInfo = readJSON(text: "${vaultTokenInfoJson}")
-                  } catch (err) {
-                     echo "######### ERROR: cannot fetch Vault for environment <${env.DatabaseEnvironment}> #########"
-                     echo "${err.toString()}"
-                     currentBuild.result = 'FAILED'
-                     skipRemainingStages = true
-                     return
                   }
                }
             }
