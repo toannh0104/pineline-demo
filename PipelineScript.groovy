@@ -138,7 +138,6 @@ pipeline {
 
             script {
                def eqVaultCred = "eqVaultCred${env.DatabaseEnvironment}"
-               echo "$eqVaultCred"
                // Prepare for Vault fetching
                withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
                   try{
