@@ -240,7 +240,7 @@ pipeline {
                               if (skipList.contains(svcName) || dbName == null) {
                                  echo "######### INFO: Service ${svcName} is either skipped by request or has no associated database. No operation needed. #########"
                               } else {
-                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null, expect_version: null]
                                  sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
                                  if (fileExists("${svcName}-info.json")) {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
@@ -324,7 +324,7 @@ pipeline {
                               if (skipList.contains(svcName) || dbName == null) {
                                  echo "######### INFO: Service ${svcName} is either skipped by request or has no associated database. No operation needed. #########"
                               } else {
-                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null, expect_version: null]
                                  sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
                                  if (fileExists("${svcName}-info.json")) {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
