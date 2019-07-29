@@ -141,7 +141,7 @@ pipeline {
                // Prepare for Vault fetching
                withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
                   try{
-                     if (env.VaultAPIVersion == 1) {
+                     if (env.VaultAPIVersion == '1') {
                         def vaultLeaderInfoJson = sh(script: "set +x; curl -s -k ${env.VAULT_LEADER_V1_URL}; set -x;", returnStdout: true).trim()
                         echo "Vault leader JSON: ${vaultLeaderInfoJson}"
                         def vaultLeaderInfo = readJSON(text: "${vaultLeaderInfoJson}")
@@ -191,7 +191,7 @@ pipeline {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
                                     def artifact = "${svcName}-${buildInfo.build.version}"
                                     withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
-                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "production/${svcName}/${artifact}.tar.gz", force: true)
                                     }
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
@@ -254,7 +254,7 @@ pipeline {
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        def vaultData = null
-                                       if (env.VaultAPIVersion == 1) {
+                                       if (env.VaultAPIVersion == '1') {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
@@ -292,7 +292,7 @@ pipeline {
                                              currentBuild.result='UNSTABLE'
                                           }
                                           versionChanges << dbVersionInfo
-                                       }                                       
+                                       }
                                     }
                                  }
                               }
@@ -338,7 +338,7 @@ pipeline {
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        def vaultData = null
-                                       if (env.VaultAPIVersion == 1) {
+                                       if (env.VaultAPIVersion == '1') {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
@@ -422,7 +422,7 @@ pipeline {
                                     dir ("${artifact}/db_migration") {
                                        expectVer = sh (script: "set +x; ${commandGetLastMigrationNumber}; set -x", returnStdout: true).trim()
                                        def vaultData = null
-                                       if (env.VaultAPIVersion == 1) {
+                                       if (env.VaultAPIVersion == '1') {
                                           def vaultDataJson = sh(script: "set +x; curl -s -H 'X-Vault-Token: ${vaultTokenInfo.auth.client_token}' -k ${vaultLeader}/v1/secret/${env.KUBERNETES_APP_SCOPE}/${env.KUBERNETES_APP_SVC_GROUP}/${env.DatabaseEnvironment}/apps/${svcName}_db_deployer; set -x", returnStdout: true).trim()
                                           vaultData = readJSON(text: "${vaultDataJson}").data
                                        } else {
