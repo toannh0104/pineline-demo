@@ -138,6 +138,7 @@ pipeline {
 
             script {
                def eqVaultCred = "eqVaultCred${env.DatabaseEnvironment}"
+               echo "$eqVaultCred"
                // Prepare for Vault fetching
                withCredentials([string(credentialsId: "${eqVaultCred}", variable: 'VAULT_TOKEN')]) {
                   try{
@@ -149,13 +150,11 @@ pipeline {
                      } else {
                         vaultLeader = 'https://vault-cluster-01.common-cicd-platform.svc:8200'
                      }
-                     echo "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;"
                      def vaultTokenInfoJson = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
                      vaultTokenInfo = readJSON(text: "${vaultTokenInfoJson}")
                      if(vaultTokenInfo && vaultTokenInfo.errors) {
                         error "Vault processing failed, errors: ${vaultTokenInfo}"
                      }
-                     
                   } catch (err) {
                      echo "######### ERROR: cannot fetch Vault for environment <${env.DatabaseEnvironment}> #########"
                      echo "${err.toString()}"
