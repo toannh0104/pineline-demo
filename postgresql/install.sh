@@ -1,7 +1,8 @@
 #!/bin/sh
 
-SVR1_IP=192.168.0.121
+SVR1_IP=192.168.0.164
 SVR2_IP=192.168.0.174
+SVR3_IP=192.168.0.121
 
 EQ_DATASTORE_PATH=/data/equator
 
@@ -238,18 +239,21 @@ function config_replica {
 
 ##### STEP1: install PostgreSQL packages
 #cleanUp $SVR1_IP
+#cleanUp $SVR2_IP
+cleanUp $SVR3_IP
+
 #install $SVR1_IP
 
 #cleanUp $SVR2_IP
 #install $SVR2_IP
 
 ##### STEP2: Basic configuration
-config_basic $SVR1_IP
+#config_basic $SVR1_IP
 #config_basic $SVR2_IP
 
 ##### STEP3: Configure hot-standby replica
 #config_replica $SVR1_IP $SVR1_IP 
 
 
-config_apply $SVR1_IP
+#config_apply $SVR1_IP
 #config_apply $SVR2_IP
