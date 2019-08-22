@@ -13,7 +13,7 @@
     tasks:
         - name: Add Postgresql Yum package repository
           yum:
-            name: {{ pg_repo }}
+            name: "{{pg_repo}}"
             state: present
         - name: Install PostgreSQL Server
           yum:
