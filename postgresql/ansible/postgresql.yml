@@ -1,0 +1,23 @@
+---
+    name: Common prerequsites
+    host: all
+    become: yes
+    become_method: sudo
+    gather_facts: yes
+    tags: [common]
+    vars:
+        - db_password: 'P@ss99W0rd'
+        - pg_ver: 11
+        - pg_data_dir: /data/equator
+        - pg_repo: 'https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
+    tasks:
+        - name: Add Postgresql Yum package repository
+          yum:
+            name: {{ pg_repo }}
+            state: present
+        - name: Install PostgreSQL Server
+          yum:
+            name:
+                - "postgresql{{pg_ver}}-server"
+                - "postgresql{{pg_ver}}"
+                - "postgresql{{pg_ver}}-contrib"
