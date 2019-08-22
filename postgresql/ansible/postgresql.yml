@@ -1,6 +1,6 @@
 ---
     name: Common prerequsites
-    host: all
+    host: psql1
     become: yes
     become_method: sudo
     gather_facts: yes
