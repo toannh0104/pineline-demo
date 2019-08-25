@@ -3,3 +3,4 @@ cmd/goose/goose*
 *.swp
 *.test
 .project
+postgresql/ansible/tmp.sh

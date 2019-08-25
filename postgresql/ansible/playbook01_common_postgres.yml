@@ -1,0 +1,68 @@
+---
+  - name: Common prerequsites
+    hosts: psql1
+    become: yes
+    become_method: sudo
+    gather_facts: yes
+    tags: [common]
+    vars:
+      - db_name: equator_dev
+      - db_password: 'P@ss99W0rd'
+      - pg_data_dir: /data/equator
+      - pg_repo: 'https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
+    tasks:
+      - name: Add Postgresql Yum package repository
+        yum:
+          name: "{{ pg_repo }}"
+          state: present
+      - name: Install PostgreSQL Server
+        yum:
+          name:
+            - postgresql11-server
+            - postgresql11
+            - postgresql11-contrib
+            - postgresql-libs
+            - python-psycopg2
+            - python-ipaddress
+      - name: Initialize default
+        shell: ./postgresql-11-setup initdb
+        args:
+          chdir: /usr/pgsql-11/bin
+          creates: /var/lib/pgsql/11/data/PG_VERSION
+      - name: Allow any authenticated user access to all databases.
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          contype: host
+          address: samenet
+          databases: all
+          method: md5
+          create: yes
+      - name: Start and enable PostgreSQL service
+        service:
+          name: postgresql-11
+          state: started
+          enabled: yes
+      - name: Set listening interfaces parameter
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: listen_addresses
+          value: "*"
+      - name: Set superuser reserved connections parameter
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: superuser_reserved_connections
+          value: "3"
+      - name: Set loging format parameter
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: log_line_prefix
+          value: " %t %u %d "
+      - name: Configure firewall
+        firewalld:
+          service: postgresql
+          permanent: yes
+          immediate: yes
+          state: enabled
