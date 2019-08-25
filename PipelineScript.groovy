@@ -335,9 +335,6 @@ pipeline {
                                  if (fileExists("${svcName}-info.json")) {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
                                     def artifact = "${svcName}-${buildInfo.build.version}"
-                                    if (svcName == 'centralize-configuration') {
-                                       artifact = "centralize-configuration-4.9.0-576"
-                                    }
                                     withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
                                        s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "production/${svcName}/${artifact}.tar.gz", force: true)
                                     }
