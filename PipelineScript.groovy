@@ -375,7 +375,7 @@ pipeline {
                                              writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                           }
                                           // Execute goose down migration
-                                          def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down-to 199 > /dev/null; set -x", returnStatus: true)
+                                          def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down > /dev/null; set -x", returnStatus: true)
                                           def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           dbVersionInfo.new_version = extractVersionInfo(newVer)
                                           dbVersionInfo.expect_version = expectVer
