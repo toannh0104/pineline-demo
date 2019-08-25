@@ -53,6 +53,7 @@ def svcs = [
       [svcName: 'sof-bank', dbName: 'sof_bank'],
       [svcName: 'sof-card', dbName: 'sof_card'],
       [svcName: 'sof-cash', dbName: 'sof_cash'],
+      [svcName: 'sof-loan', dbName: 'sof_loan'],
       // [svcName: 'spi-engine', dbName: null],
       [svcName: 'system-user', dbName: 'system_user'],
       [svcName: 'trust-management', dbName: 'trust_management'],
@@ -83,7 +84,7 @@ pipeline {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
       choice(name: 'VaultAPIVersion', choices: '1\n2', description: 'Select Vault API Version (default 1 for pipeline library < 1.7.1)')
       choice(name: 'Action', choices: 'check\nupgrade\ndowngrade\nreset', description: 'check: report current version compare to release information.\nupgrade: Upgrade database to the latest released version without losing user data.\ndowngrade: Downgrade database to the version coresponding current running service.\nreset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
-      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
+      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsof-loan\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
    }
    options {
       buildDiscarder(logRotator(numToKeepStr:'5'))
