@@ -1,0 +1,27 @@
+---
+    - name: Uninstall
+      hosts: psql1
+      become: yes
+      become_method: sudo
+      gather_facts: yes
+      tags: [common]
+      tasks:
+        - name: Remove PostgreSQL packages
+          yum:
+            name:
+              - python-ipaddress
+              - python-psycopg2
+              - postgresql11
+              - postgresql11-contrib
+              - postgresql11-libs
+              - postgresql11-server
+            state: absent
+        - name: Delete data folders
+          file:
+            state: absent
+            path: "/var/lib/pgsql"
+        - name: Delete lib folders
+          file:
+            state: absent
+            path: "/usr/pgsql-11/"
+          

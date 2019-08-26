@@ -19,9 +19,9 @@
         yum:
           name:
             - postgresql11-server
-            - postgresql11
+            - postgresql11-libs
             - postgresql11-contrib
-            - postgresql-libs
+            - postgresql11
             - python-psycopg2
             - python-ipaddress
       - name: Initialize default
@@ -38,7 +38,7 @@
           method: md5
           create: yes
       - name: Start and enable PostgreSQL service
-        service:
+        systemd:
           name: postgresql-11
           state: started
           enabled: yes

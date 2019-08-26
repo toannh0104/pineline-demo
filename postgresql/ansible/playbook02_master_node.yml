@@ -9,7 +9,8 @@
       - db_name: equator_dev
       - db_username: eq_db
       - db_password: 'P@ss99W0rd'
-      - pg_data_dir: /data/equator
+      - pg_data_dir: /data/equator  # Not use yet. Need look in to this if datastorage is mount in different place
+      - replica_password: 'P@ss99W0rd_replica'
       # Caculated using https://pgtune.leopard.in.ua
       - max_connections: 200
       - shared_buffers: 256MB
@@ -35,7 +36,7 @@
           encoding: UTF-8
           lc_collate: en_US.UTF-8
           lc_ctype: en_US.UTF-8
-          conn_limit: "{{ max_connections }}"
+          conn_limit: "{{ max_connections | int }}"
       - name: Set memory shared buffers parameter
         become: yes
         become_user: postgres
@@ -71,7 +72,7 @@
         become_user: postgres
         postgresql_set:
           name: default_statistics_target
-          value: "{{ default_statistics_target }}"
+          value: "{{ default_statistics_target | int }}"
       - name: Set random_page_cost parameter
         become: yes
         become_user: postgres
@@ -83,7 +84,7 @@
         become_user: postgres
         postgresql_set:
           name: effective_io_concurrency
-          value: "{{ effective_io_concurrency }}"
+          value: "{{ effective_io_concurrency | int }}"
       - name: Set work_mem parameter
         become: yes
         become_user: postgres
@@ -107,17 +108,20 @@
         become_user: postgres
         postgresql_set:
           name: max_worker_processes
-          value: "{{ max_worker_processes }}"
+          value: "{{ max_worker_processes | int }}"
       - name: Set max_parallel_workers_per_gather parameter
         become: yes
         become_user: postgres
         postgresql_set:
           name: max_parallel_workers_per_gather
-          value: "{{ max_parallel_workers_per_gather }}"
+          value: "{{ max_parallel_workers_per_gather | int }}"
       - name: Set max_parallel_workers parameter
         become: yes
         become_user: postgres
         postgresql_set:
           name: max_parallel_workers
-          value: "{{ max_parallel_workers }}"
-      
+          value: "{{ max_parallel_workers | int }}"
+      - name: Restart PostgreSQL service to take new configs
+        systemd:
+          name: postgresql-11
+          state: restarted
