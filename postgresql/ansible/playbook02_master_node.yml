@@ -10,6 +10,7 @@
       - db_username: eq_db
       - db_password: 'P@ss99W0rd'
       - pg_data_dir: /data/equator  # Not use yet. Need look in to this if datastorage is mount in different place
+      - replica_username: 'pgreplica'
       - replica_password: 'P@ss99W0rd_replica'
       # Caculated using https://pgtune.leopard.in.ua
       - max_connections: 200
@@ -27,6 +28,11 @@
       - max_worker_processes: 2
       - max_parallel_workers_per_gather: 1
       - max_parallel_workers: 2
+      - wal_level: replica
+      - max_wal_senders: 10
+      - wal_keep_segments: 256
+      - archive_mode: 'on'
+      - archive_command: ’/usr/pgsql-11/bin/syncwal.sh %p %f'
     tasks:
       - name: Create Equator database
         become: yes
@@ -121,7 +127,45 @@
         postgresql_set:
           name: max_parallel_workers
           value: "{{ max_parallel_workers | int }}"
+      # REPLICATION
+      - name: Set WAL Level paramter for replica
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: wal_level
+          value: "{{ wal_level }}"
+      - name: Set WAL sender max proc for replica
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: max_wal_senders
+          value: "{{ max_wal_senders | int }}"
+      - name: Set WAL segments to be kept for replica
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: wal_keep_segments
+          value: "{{ wal_keep_segments | int }}"
+      - name: Set archive mode for replica
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: archive_mode
+          value: "{{ archive_mode }}"
+      - name: Create script to copy WAL files from primary to standby
+
+      - name: Setup Replica node access in pg_hba
+        become: yes
+        become_user: postgres
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          address: "{{ hostvars['pgread'].['ansible_host'] }}/32"
+          contype: host
+          users: "{{ replica_username }}"
+          databases: replication
+          method: md5
       - name: Restart PostgreSQL service to take new configs
         systemd:
           name: postgresql-11
           state: restarted
+      

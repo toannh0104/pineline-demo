@@ -11,9 +11,7 @@
             name:
               - python-ipaddress
               - python-psycopg2
-              - postgresql11
               - postgresql11-contrib
-              - postgresql11-libs
               - postgresql11-server
             state: absent
         - name: Delete data folders
