@@ -25,6 +25,7 @@
             - python-psycopg2
             - python-ipaddress
             - libsemanage-python
+            - pexpect
       - name: Initialize default
         shell: ./postgresql-11-setup initdb
         args:
