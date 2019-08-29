@@ -13,6 +13,9 @@
               - python-psycopg2
               - postgresql11-contrib
               - postgresql11-server
+              - postgresql10-libs
+              - postgresql11-libs
+              - postgresql11
             state: absent
         - name: Delete data folders
           file:
