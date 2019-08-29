@@ -38,7 +38,7 @@
           command: "/usr/pgsql-11/bin/pg_basebackup -D /var/lib/pgsql/11/data/ -c fast -X fetch -P -Fp -R -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }}"
           responses:
             (?i)password: "{{ replica_password }}"
-        no_log: yes
+        no_log: no
       - name: Update recovery configuration
         with_items:
           - { regexp: "^standby_mode\\s*=", line: "standby_mode = 'on'" }
