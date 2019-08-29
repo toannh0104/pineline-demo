@@ -1,6 +1,6 @@
 ---
     - name: Uninstall
-      hosts: psql1
+      hosts: all
       become: yes
       become_method: sudo
       gather_facts: yes
