@@ -1,6 +1,6 @@
 ---
-  - name: Master node setup
-    hosts: psql1
+  - name: Master nodes setup
+    hosts: pgmaster
     become: yes
     become_method: sudo
     gather_facts: yes
@@ -32,7 +32,7 @@
       - max_wal_senders: 10
       - wal_keep_segments: 256
       - archive_mode: 'on'
-      - archive_command: ’/usr/pgsql-11/bin/syncwal.sh %p %f'
+      - archive_command: /usr/pgsql-11/bin/syncwal.sh
     tasks:
       - name: Create Equator database
         become: yes
@@ -152,14 +152,49 @@
         postgresql_set:
           name: archive_mode
           value: "{{ archive_mode }}"
-      - name: Create script to copy WAL files from primary to standby
-
+      - name: Set archive command for replica
+        become: yes
+        become_user: postgres
+        postgresql_set:
+          name: archive_command
+          value: "{{ archive_command }} %p %f"
+      - name: Copy script to copy WAL files from primary to standby
+        copy:
+          content: |
+            #!/bin/sh
+            scp $1 {{ hostvars['psql3'].ansible_host }}:/var/lib/pgsql/11/walarchive/$2
+            if [ $? != 0 ] then
+              echo 'Archiver error:'
+              exit 1
+            fi
+            exit 0
+          dest: "{{ archive_command }}"
+          owner: postgres
+          group: postgres
+          mode: '0760'
+      - name: Create replica user, set MD5-hashed password, grant replication privs
+        become: yes
+        become_user: postgres
+        postgresql_user:
+          name: "{{ replica_username }}"
+          password: "{{ replica_password }}"
+          encrypted: yes
+          expires: 'infinity'
+          role_attr_flags: REPLICATION,LOGIN
+      - name: For security, revoke REPLICATION role from postgres user
+        become: yes
+        become_user: postgres
+        postgresql_user:
+          name: "{{ replica_username }}"
+          no_password_changes: yes
+          role_attr_flags: NOREPLICATION
+          fail_on_user: no
       - name: Setup Replica node access in pg_hba
         become: yes
         become_user: postgres
         postgresql_pg_hba:
           dest: /var/lib/pgsql/11/data/pg_hba.conf
-          address: "{{ hostvars['pgread'].['ansible_host'] }}/32"
+          address: "{{ hostvars['psql3'].ansible_host }}/32"
           contype: host
           users: "{{ replica_username }}"
           databases: replication
@@ -168,4 +203,3 @@
         systemd:
           name: postgresql-11
           state: restarted
-      

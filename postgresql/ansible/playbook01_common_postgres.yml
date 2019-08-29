@@ -1,6 +1,6 @@
 ---
   - name: Common prerequsites
-    hosts: psql1
+    hosts: all
     become: yes
     become_method: sudo
     gather_facts: yes
@@ -66,3 +66,46 @@
           permanent: yes
           immediate: yes
           state: enabled
+      # Upload RSA SSH Keys to all nodes
+      - name: Prepare keys and permissions
+        become: yes
+        become_user: postgres
+        with_items:
+           - { name: '', mode: '0700', state: directory }
+           - { name: /id_rsa_postgres, mode: '0600', state: touch }
+           - { name: /id_rsa_postgres.pub, mode: '0644', state: touch }
+           - { name: /authorized_keys, mode: '0644', state: touch }
+           - { name: /config, mode: '0644', state: touch }
+           - { name: /known_hosts, mode: '0644', state: touch }
+        file:
+          path: "~/.ssh{{ item.name }}"
+          owner: postgres
+          mode: "{{ item.mode }}"
+          state: "{{ item.state }}"
+      - name: Copy keys
+        become: yes
+        become_user: postgres
+        with_items:
+          - { source: ./ssh_keys/id_rsa, target: ~/.ssh/id_rsa_postgres }
+          - { source: ./ssh_keys/id_rsa.pub, target: ~/.ssh/id_rsa_postgres.pub }
+        copy:
+          content: "{{ lookup('file', item.source) }}"
+          dest: "{{ item.target }}"
+      - name: Add trust SSH key
+        become: yes
+        become_user: postgres
+        lineinfile:
+          path: ~/.ssh/authorized_keys
+          line: "{{ lookup('file', './ssh_keys/id_rsa.pub') }}"
+          create: yes
+      # Setup SELinux flags
+      - name: Set postgresql_can_rsync flag on and keep it persistent across reboots
+        seboolean:
+          name: postgresql_can_rsync
+          state: yes
+          persistent: yes
+      - name: Set allow_user_postgresql_connect flag on and keep it persistent across reboots
+        seboolean:
+          name: allow_user_postgresql_connect
+          state: yes
+          persistent: yes
