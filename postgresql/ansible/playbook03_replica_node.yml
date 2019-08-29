@@ -32,15 +32,27 @@
       - name: Import base backup of the primary to the standby database
         become: yes
         become_user: postgres
-        shell: | 
-          ./pg_basebackup -D /var/lib/pgsql/11/data/ -c fast -X fetch -P -Fp -R -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }}
-
-          expect 'Password:'
-          send {{ replica_password }}
-
-          exit 0
-        args:
+        expect:
+          echo: yes
           chdir: /usr/pgsql-11/bin/
+          command: "/usr/pgsql-11/bin/pg_basebackup -D /var/lib/pgsql/11/data/ -c fast -X fetch -P -Fp -R -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }}"
+          responses:
+            (?i)password: "{{ replica_password }}"
+        no_log: yes
+      - name: Update recovery configuration
+        with_items:
+          - { regexp: "^standby_mode\\s*=", line: "standby_mode = 'on'" }
+          - { regexp: "^primary_conninfo\\s*=", line: "primary_conninfo = 'user={{ replica_username }} password={{ replica_password }} host={{ hostvars[groups['pgmaster'][0]].ansible_host }} port=5432 scram_channel_binding=''tls-unique'' sslmode=prefer sslcompression=0 krbsrvname=postgres target_session_attrs=any'" }
+          - { regexp: "^restore_command\\s*=", line: "restore_command = 'cp /var/lib/pgsql/11/walarchive/%f %p'" }
+          - { regexp: "^archive_cleanup_command\\s*=", line: "archive_cleanup_command = '/usr/pgsql-11/bin/pg_archivecleanup /var/lib/pgsql/11/walarchive %r'" }
+          - { regexp: "^trigger_file\\s*=", line: "trigger_file = '/var/lib/pgsql/11/data/finish.replication'" }
+          - { regexp: "^recovery_target_timeline\\s*=", line: "recovery_target_timeline = 'latest'" }
+        lineinfile:
+          path: /var/lib/pgsql/11/data/recovery.conf
+          regexp: "{{ item.regexp }}"
+          line: "{{ item.line }}"
+          owner: postgres
+          group: postgres
       - name: Start PostgreSQL service
         systemd:
           name: postgresql-11

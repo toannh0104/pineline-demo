@@ -48,26 +48,26 @@
         become: yes
         become_user: postgres
         with_items:
-          - { name: 'shared_buffers', value: "{{ shared_buffers }}"}
-          - { name: 'effective_cache_size', value: "{{ effective_cache_size }}"}
-          - { name: 'checkpoint_completion_target', value: "{{ checkpoint_completion_target }}"}
-          - { name: 'wal_buffers', value: "{{ wal_buffers }}"}
-          - { name: 'default_statistics_target', value: "{{ default_statistics_target }}"}
-          - { name: 'random_page_cost', value: "{{ random_page_cost }}"}
-          - { name: 'effective_io_concurrency', value: "{{ effective_io_concurrency }}"}
-          - { name: 'work_mem', value: "{{ work_mem }}"}
-          - { name: 'min_wal_size', value: "{{ min_wal_size }}"}
-          - { name: 'max_wal_size', value: "{{ max_wal_size }}"}
-          - { name: 'max_worker_processes', value: "{{ max_worker_processes }}"}
-          - { name: 'max_parallel_workers_per_gather', value: "{{ max_parallel_workers_per_gather }}"}
-          - { name: 'max_parallel_workers', value: "{{ max_parallel_workers }}"}
+          - { name: 'shared_buffers', value: "{{ shared_buffers }}" }
+          - { name: 'effective_cache_size', value: "{{ effective_cache_size }}" }
+          - { name: 'checkpoint_completion_target', value: "{{ checkpoint_completion_target }}" }
+          - { name: 'wal_buffers', value: "{{ wal_buffers }}" }
+          - { name: 'default_statistics_target', value: "{{ default_statistics_target }}" }
+          - { name: 'random_page_cost', value: "{{ random_page_cost }}" }
+          - { name: 'effective_io_concurrency', value: "{{ effective_io_concurrency }}" }
+          - { name: 'work_mem', value: "{{ work_mem }}" }
+          - { name: 'min_wal_size', value: "{{ min_wal_size }}" }
+          - { name: 'max_wal_size', value: "{{ max_wal_size }}" }
+          - { name: 'max_worker_processes', value: "{{ max_worker_processes }}" }
+          - { name: 'max_parallel_workers_per_gather', value: "{{ max_parallel_workers_per_gather }}" }
+          - { name: 'max_parallel_workers', value: "{{ max_parallel_workers }}" }
           # REPLICATION
-          - { name: 'wal_level', value: "{{ wal_level }}"}
-          - { name: 'max_wal_senders', value: "{{ max_wal_senders }}"}
-          - { name: 'wal_keep_segments', value: "{{ wal_keep_segments }}"}
-          - { name: 'archive_mode', value: "{{ archive_mode }}"}
-          - { name: 'archive_command', value: "{{ archive_command }}"}
-          - { name: 'effective_cache_size', value: "{{ effective_cache_size }}"}
+          - { name: 'wal_level', value: "{{ wal_level }}" }
+          - { name: 'max_wal_senders', value: "{{ max_wal_senders }}" }
+          - { name: 'wal_keep_segments', value: "{{ wal_keep_segments }}" }
+          - { name: 'archive_mode', value: "{{ archive_mode }}" }
+          - { name: 'archive_command', value: "{{ archive_command }}" }
+          - { name: 'effective_cache_size', value: "{{ effective_cache_size }}" }
         postgresql_set:
           name: "{{ item.name }}"
           value: "{{ item.value }}"
@@ -76,7 +76,8 @@
           content: |
             #!/bin/sh
             scp -o StrictHostKeyChecking=no -q $1 {{ hostvars['psql3'].ansible_host }}:/var/lib/pgsql/11/walarchive/$2
-            if [ $? != 0 ] then
+            if [ $? != 0 ]
+            then
               echo 'Archiver error:'
               exit 1
             fi
@@ -92,7 +93,7 @@
           name: "{{ replica_username }}"
           password: "{{ replica_password }}"
           encrypted: yes
-          expires: 'infinity'
+          expires: infinity
           role_attr_flags: REPLICATION,LOGIN
       - name: For security, revoke REPLICATION role from postgres user
         become: yes
@@ -101,7 +102,7 @@
           name: "{{ replica_username }}"
           no_password_changes: yes
           role_attr_flags: NOREPLICATION
-          fail_on_user: no
+          fail_on_user: yes
       - name: Setup Replica node access in pg_hba
         become: yes
         become_user: postgres
