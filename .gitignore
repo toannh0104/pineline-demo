@@ -4,3 +4,5 @@ cmd/goose/goose*
 *.test
 .project
 postgresql/ansible/tmp.sh
+postgresql/ansible/runtest.sh
+postgresql/ansible/test.yaml
