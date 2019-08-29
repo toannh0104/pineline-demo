@@ -43,121 +43,34 @@
           lc_collate: en_US.UTF-8
           lc_ctype: en_US.UTF-8
           conn_limit: "{{ max_connections | int }}"
-      - name: Set memory shared buffers parameter
+
+      - name: Set Postgres required parameters
         become: yes
         become_user: postgres
+        with_items:
+          - { name: 'shared_buffers', value: "{{ shared_buffers }}"}
+          - { name: 'effective_cache_size', value: "{{ effective_cache_size }}"}
+          - { name: 'checkpoint_completion_target', value: "{{ checkpoint_completion_target }}"}
+          - { name: 'wal_buffers', value: "{{ wal_buffers }}"}
+          - { name: 'default_statistics_target', value: "{{ default_statistics_target }}"}
+          - { name: 'random_page_cost', value: "{{ random_page_cost }}"}
+          - { name: 'effective_io_concurrency', value: "{{ effective_io_concurrency }}"}
+          - { name: 'work_mem', value: "{{ work_mem }}"}
+          - { name: 'min_wal_size', value: "{{ min_wal_size }}"}
+          - { name: 'max_wal_size', value: "{{ max_wal_size }}"}
+          - { name: 'max_worker_processes', value: "{{ max_worker_processes }}"}
+          - { name: 'max_parallel_workers_per_gather', value: "{{ max_parallel_workers_per_gather }}"}
+          - { name: 'max_parallel_workers', value: "{{ max_parallel_workers }}"}
+          # REPLICATION
+          - { name: 'wal_level', value: "{{ wal_level }}"}
+          - { name: 'max_wal_senders', value: "{{ max_wal_senders }}"}
+          - { name: 'wal_keep_segments', value: "{{ wal_keep_segments }}"}
+          - { name: 'archive_mode', value: "{{ archive_mode }}"}
+          - { name: 'archive_command', value: "{{ archive_command }}"}
+          - { name: 'effective_cache_size', value: "{{ effective_cache_size }}"}
         postgresql_set:
-          name: shared_buffers
-          value: "{{ shared_buffers }}"
-      - name: Set memory cache size parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: effective_cache_size
-          value: "{{ effective_cache_size }}"
-      - name: Set memory for maintenance work parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: effective_cache_size
-          value: "{{ effective_cache_size }}"
-      - name: Set checkpoint_completion_target parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: checkpoint_completion_target
-          value: "{{ checkpoint_completion_target }}"
-      - name: Set wal_buffers parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: wal_buffers
-          value: "{{ wal_buffers }}"
-      - name: Set default_statistics_target parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: default_statistics_target
-          value: "{{ default_statistics_target | int }}"
-      - name: Set random_page_cost parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: random_page_cost
-          value: "{{ random_page_cost }}"
-      - name: Set effective_io_concurrency parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: effective_io_concurrency
-          value: "{{ effective_io_concurrency | int }}"
-      - name: Set work_mem parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: work_mem
-          value: "{{ work_mem }}"
-      - name: Set min_wal_size parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: min_wal_size
-          value: "{{ min_wal_size }}"
-      - name: Set max_wal_size parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: max_wal_size
-          value: "{{ max_wal_size }}"
-      - name: Set max_worker_processes parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: max_worker_processes
-          value: "{{ max_worker_processes | int }}"
-      - name: Set max_parallel_workers_per_gather parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: max_parallel_workers_per_gather
-          value: "{{ max_parallel_workers_per_gather | int }}"
-      - name: Set max_parallel_workers parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: max_parallel_workers
-          value: "{{ max_parallel_workers | int }}"
-      # REPLICATION
-      - name: Set WAL Level paramter for replica
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: wal_level
-          value: "{{ wal_level }}"
-      - name: Set WAL sender max proc for replica
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: max_wal_senders
-          value: "{{ max_wal_senders | int }}"
-      - name: Set WAL segments to be kept for replica
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: wal_keep_segments
-          value: "{{ wal_keep_segments | int }}"
-      - name: Set archive mode for replica
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: archive_mode
-          value: "{{ archive_mode }}"
-      - name: Set archive command for replica
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: archive_command
-          value: "{{ archive_command }} %p %f"
+          name: "{{ item.name }}"
+          value: "{{ item.value }}"
       - name: Copy script to copy WAL files from primary to standby
         copy:
           content: |

@@ -42,24 +42,16 @@
           name: postgresql-11
           state: started
           enabled: yes
-      - name: Set listening interfaces parameter
+      - name: Set default parameters
         become: yes
         become_user: postgres
+        with_items:
+          - { name: 'listen_addresses', value: '*' }
+          - { name: 'superuser_reserved_connections', value: 3 }
+          - { name: 'log_line_prefix', value: ' %t %u %d ' }
         postgresql_set:
-          name: listen_addresses
-          value: "*"
-      - name: Set superuser reserved connections parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: superuser_reserved_connections
-          value: "3"
-      - name: Set loging format parameter
-        become: yes
-        become_user: postgres
-        postgresql_set:
-          name: log_line_prefix
-          value: " %t %u %d "
+          name: "{{ item.name }}"
+          value: "{{ item.value }}"
       - name: Configure firewall
         firewalld:
           service: postgresql
@@ -99,13 +91,11 @@
           line: "{{ lookup('file', './ssh_keys/id_rsa.pub') }}"
           create: yes
       # Setup SELinux flags
-      - name: Set postgresql_can_rsync flag on and keep it persistent across reboots
+      - name: Set SELinux flags and keep it persistent across reboots
+        with_items:
+          - postgresql_can_rsync
+          - allow_user_postgresql_connect
         seboolean:
-          name: postgresql_can_rsync
-          state: yes
-          persistent: yes
-      - name: Set allow_user_postgresql_connect flag on and keep it persistent across reboots
-        seboolean:
-          name: allow_user_postgresql_connect
+          name: "{{ item }}"
           state: yes
           persistent: yes
