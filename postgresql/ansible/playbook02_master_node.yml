@@ -75,7 +75,7 @@
         copy:
           content: |
             #!/bin/sh
-            scp $1 {{ hostvars['psql3'].ansible_host }}:/var/lib/pgsql/11/walarchive/$2
+            scp -o StrictHostKeyChecking=no -q $1 {{ hostvars['psql3'].ansible_host }}:/var/lib/pgsql/11/walarchive/$2
             if [ $? != 0 ] then
               echo 'Archiver error:'
               exit 1

@@ -24,6 +24,7 @@
             - postgresql11
             - python-psycopg2
             - python-ipaddress
+            - libsemanage-python
       - name: Initialize default
         shell: ./postgresql-11-setup initdb
         args:
@@ -58,38 +59,37 @@
           permanent: yes
           immediate: yes
           state: enabled
-      # Upload RSA SSH Keys to all nodes
+      # Process SSH Keys to all nodes
       - name: Prepare keys and permissions
         become: yes
         become_user: postgres
         with_items:
            - { name: '', mode: '0700', state: directory }
-           - { name: /id_rsa_postgres, mode: '0600', state: touch }
-           - { name: /id_rsa_postgres.pub, mode: '0644', state: touch }
            - { name: /authorized_keys, mode: '0644', state: touch }
-           - { name: /config, mode: '0644', state: touch }
            - { name: /known_hosts, mode: '0644', state: touch }
         file:
           path: "~/.ssh{{ item.name }}"
           owner: postgres
           mode: "{{ item.mode }}"
           state: "{{ item.state }}"
-      - name: Copy keys
+      - name: Generate SSH key pair
         become: yes
         become_user: postgres
-        with_items:
-          - { source: ./ssh_keys/id_rsa, target: ~/.ssh/id_rsa_postgres }
-          - { source: ./ssh_keys/id_rsa.pub, target: ~/.ssh/id_rsa_postgres.pub }
-        copy:
-          content: "{{ lookup('file', item.source) }}"
-          dest: "{{ item.target }}"
-      - name: Add trust SSH key
+        openssh_keypair:
+          path: ~/.ssh/id_rsa
+          owner: postgres
+        register: ssh_key
+      - name: Register public key to be trusted by all other hosts
+        with_items: "{{ groups['all'] }}"
         become: yes
         become_user: postgres
+        when: hostvars[item].ansible_host != ansible_default_ipv4.address
         lineinfile:
           path: ~/.ssh/authorized_keys
-          line: "{{ lookup('file', './ssh_keys/id_rsa.pub') }}"
+          line: "{{ ssh_key.public_key }}"
           create: yes
+        delegate_to: "{{ hostvars[item].ansible_host }}"
+        remote_user: "{{ ansible_user }}"
       # Setup SELinux flags
       - name: Set SELinux flags and keep it persistent across reboots
         with_items:
@@ -99,3 +99,10 @@
           name: "{{ item }}"
           state: yes
           persistent: yes
+      - name: Restore Context for SSH keys access
+        become: yes
+        become_user: postgres
+        shell: 'restorecon -R -v ~/.ssh; chcon -R -v system_u:object_r:usr_t:s0 ~/.ssh/'
+        args:
+          chdir: ~/
+          removes: ~/.ssh/authorized_keys
