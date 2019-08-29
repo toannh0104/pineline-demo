@@ -95,14 +95,15 @@
           encrypted: yes
           expires: infinity
           role_attr_flags: REPLICATION,LOGIN
-      - name: For security, revoke REPLICATION role from postgres user
+      - name: Create replica user, set MD5-hashed password, grant replication privs
         become: yes
-        become_user: postgres
-        postgresql_user:
-          name: "{{ replica_username }}"
-          no_password_changes: yes
-          role_attr_flags: NOREPLICATION
-          fail_on_user: yes
+        become_user: postgres  
+        postgresql_membership:
+          groups:
+            - Replication
+            - Login
+          target_roles:
+            - "{{ replica_username }}"
       - name: Setup Replica node access in pg_hba
         become: yes
         become_user: postgres
