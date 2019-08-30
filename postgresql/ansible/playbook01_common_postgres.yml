@@ -10,6 +10,7 @@
       - db_password: 'P@ss99W0rd'
       - pg_data_dir: /data/equator
       - pg_repo: 'https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
+      - pexpect_url: 'https://cbs.centos.org/kojifiles/packages/python-pexpect/4.5/1.el7/noarch/python2-pexpect-4.5-1.el7.noarch.rpm'
     tasks:
       - name: Add Postgresql Yum package repository
         yum:
@@ -25,12 +26,12 @@
             - python-psycopg2
             - python-ipaddress
             - libsemanage-python
-            - pexpect
-      - name: Initialize default
-        shell: ./postgresql-11-setup initdb
-        args:
-          chdir: /usr/pgsql-11/bin
-          creates: /var/lib/pgsql/11/data/PG_VERSION
+      - name: Add Postgresql Yum package repository
+        yum:
+          disable_gpg_check: yes
+          validate_certs: no
+          name: "{{ pexpect_url }}"
+          state: present
       - name: Allow any authenticated user access to all databases.
         postgresql_pg_hba:
           dest: /var/lib/pgsql/11/data/pg_hba.conf

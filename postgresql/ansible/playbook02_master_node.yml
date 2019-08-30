@@ -34,6 +34,11 @@
       - archive_mode: 'on'
       - archive_command: /usr/pgsql-11/bin/syncwal.sh
     tasks:
+      - name: Initialize default
+        shell: ./postgresql-11-setup initdb
+        args:
+          chdir: /usr/pgsql-11/bin
+          creates: /var/lib/pgsql/11/data/PG_VERSION
       - name: Create Equator database
         become: yes
         become_user: postgres
