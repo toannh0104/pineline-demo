@@ -6,9 +6,11 @@
       gather_facts: yes
       tags: [common]
       tasks:
-        - name: Remove PostgreSQL packages
+        - name: Remove Software packages
           yum:
             name:
+              - python2-pexpect
+              - python2-ptyprocess
               - python-ipaddress
               - python-psycopg2
               - postgresql11-contrib

@@ -16,21 +16,32 @@
         yum:
           name: "{{ pg_repo }}"
           state: present
-      - name: Install PostgreSQL Server
+      - name: Install PostgreSQL softwares
         yum:
           name:
             - postgresql11-server
             - postgresql11-libs
             - postgresql11-contrib
             - postgresql11
-            - python-psycopg2
-            - python-ipaddress
-            - libsemanage-python
-      - name: Add Postgresql Yum package repository
+          state: present  
+      - name: Install EPEL release (Make disabled by default)
+        yum:
+          name: epel-release
+          state: present
+      - name: Disable EPEL repo
+        yum_repository:
+          name: epel
+          enabled: no
+      - name: Install required packages for Ansible
         yum:
           disable_gpg_check: yes
           validate_certs: no
-          name: "{{ pexpect_url }}"
+          enablerepo: epel
+          name: 
+            - "{{ pexpect_url }}"
+            - python-psycopg2
+            - python-ipaddress
+            - libsemanage-python
           state: present
       - name: Allow any authenticated user access to all databases.
         postgresql_pg_hba:
