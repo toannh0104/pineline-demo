@@ -29,9 +29,10 @@
           name: epel-release
           state: present
       - name: Disable EPEL repo
-        yum_repository:
-          name: epel
-          enabled: no
+        lineinfile:
+          path: /etc/yum.repos.d/epel.repo
+          regexp: "enabled\\s*=\\s*1"
+          line: "enabled=0"
       - name: Install required packages for Ansible
         yum:
           disable_gpg_check: yes
@@ -51,21 +52,6 @@
           databases: all
           method: md5
           create: yes
-      - name: Start and enable PostgreSQL service
-        systemd:
-          name: postgresql-11
-          state: started
-          enabled: yes
-      - name: Set default parameters
-        become: yes
-        become_user: postgres
-        with_items:
-          - { name: 'listen_addresses', value: '*' }
-          - { name: 'superuser_reserved_connections', value: 3 }
-          - { name: 'log_line_prefix', value: ' %t %u %d ' }
-        postgresql_set:
-          name: "{{ item.name }}"
-          value: "{{ item.value }}"
       - name: Configure firewall
         firewalld:
           service: postgresql
