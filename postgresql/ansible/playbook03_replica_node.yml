@@ -25,14 +25,14 @@
         expect:
           echo: yes
           chdir: /usr/pgsql-11/bin/
-          command: "/usr/pgsql-11/bin/pg_basebackup -D /var/lib/pgsql/11/data/ -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }} -v -P --xlog-method=stream"
+          command: "/usr/pgsql-11/bin/pg_basebackup -D /var/lib/pgsql/11/data/ -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }} -v -P"
           responses:
             (?i)password: "{{ replica_password }}"
         no_log: no
       - name: Update recovery configuration
         with_items:
           - { regexp: "^standby_mode\\s*=", line: "standby_mode = 'on'" }
-          - { regexp: "^primary_conninfo\\s*=", line: "primary_conninfo = 'user={{ replica_username }} password=''{{ replica_password }}'' host={{ hostvars[groups['pgmaster'][0]].ansible_host }} port=5432 sslmode=prefer sslcompression=0 krbsrvname=postgres target_session_attrs=any application_name={{ inventory_hostname }}'" }
+          - { regexp: "^primary_conninfo\\s*=", line: "primary_conninfo = 'user={{ replica_username }} password=''{{ replica_password }}'' host={{ hostvars[groups['pgmaster'][0]].ansible_host }} port=5432 target_session_attrs=any application_name={{ inventory_hostname }}'" }
           - { regexp: "^restore_command\\s*=", line: "restore_command = 'test -f /var/lib/pgsql/11/walarchive/%f && cp /var/lib/pgsql/11/walarchive/%f %p'" }
           - { regexp: "^archive_cleanup_command\\s*=", line: "archive_cleanup_command = '/usr/pgsql-11/bin/pg_archivecleanup /var/lib/pgsql/11/walarchive %r'" }
           - { regexp: "^trigger_file\\s*=", line: "trigger_file = '/var/lib/pgsql/11/data/finish.replication'" }
