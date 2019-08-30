@@ -53,6 +53,14 @@
           line: "{{ item.line }}"
           owner: postgres
           group: postgres
+      - name: Allow any authenticated user access to all databases.
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          contype: host
+          address: samenet
+          databases: all
+          method: md5
+          create: yes
       - name: Start PostgreSQL service
         systemd:
           name: postgresql-11

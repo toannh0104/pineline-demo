@@ -39,6 +39,14 @@
         args:
           chdir: /usr/pgsql-11/bin
           creates: /var/lib/pgsql/11/data/PG_VERSION
+      - name: Allow any authenticated user access to all databases.
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          contype: host
+          address: samenet
+          databases: all
+          method: md5
+          create: yes
       - name: Create Equator database
         become: yes
         become_user: postgres
