@@ -98,12 +98,9 @@
       - name: Create replica user, set MD5-hashed password, grant replication privs
         become: yes
         become_user: postgres  
-        postgresql_membership:
-          groups:
-            - Replication
-            - Login
-          target_roles:
-            - "{{ replica_username }}"
+        postgresql_query:
+          db: postgres
+          query: "ALTER USER {{ replica_username }} WITH REPLICATION;"
       - name: Setup Replica node access in pg_hba
         become: yes
         become_user: postgres
