@@ -32,7 +32,7 @@
       - name: Update recovery configuration
         with_items:
           - { regexp: "^standby_mode\\s*=", line: "standby_mode = 'on'" }
-          - { regexp: "^primary_conninfo\\s*=", line: "primary_conninfo = 'user={{ replica_username }} password={{ replica_password }} host={{ hostvars[groups['pgmaster'][0]].ansible_host }} port=5432 scram_channel_binding=''tls-unique'' sslmode=prefer sslcompression=0 krbsrvname=postgres target_session_attrs=any'" }
+          - { regexp: "^primary_conninfo\\s*=", line: "primary_conninfo = 'user={{ replica_username }} password=''{{ replica_password }}'' host={{ hostvars[groups['pgmaster'][0]].ansible_host }} port=5432 sslmode=prefer sslcompression=0 krbsrvname=postgres target_session_attrs=any'" }
           - { regexp: "^restore_command\\s*=", line: "restore_command = 'cp /var/lib/pgsql/11/walarchive/%f %p'" }
           - { regexp: "^archive_cleanup_command\\s*=", line: "archive_cleanup_command = '/usr/pgsql-11/bin/pg_archivecleanup /var/lib/pgsql/11/walarchive %r'" }
           - { regexp: "^trigger_file\\s*=", line: "trigger_file = '/var/lib/pgsql/11/data/finish.replication'" }
