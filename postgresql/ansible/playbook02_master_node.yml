@@ -94,7 +94,7 @@
           password: "{{ replica_password }}"
           encrypted: yes
           expires: infinity
-          role_attr_flags: REPLICATION,LOGIN
+          role_attr_flags: LOGIN
       - name: Create replica user, set MD5-hashed password, grant replication privs
         become: yes
         become_user: postgres  
