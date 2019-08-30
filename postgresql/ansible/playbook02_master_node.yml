@@ -83,7 +83,7 @@
           - { name: 'max_wal_senders', value: "{{ max_wal_senders }}" }
           - { name: 'wal_keep_segments', value: "{{ wal_keep_segments }}" }
           - { name: 'archive_mode', value: "{{ archive_mode }}" }
-          - { name: 'archive_command', value: "{{ archive_command }}" }
+          - { name: 'archive_command', value: "{{ archive_command }} %p %f" }
           - { name: 'effective_cache_size', value: "{{ effective_cache_size }}" }
         postgresql_set:
           name: "{{ item.name }}"
