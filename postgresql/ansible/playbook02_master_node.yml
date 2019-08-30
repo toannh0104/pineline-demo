@@ -52,6 +52,12 @@
           name: postgresql-11
           state: started
           enabled: yes
+      - name: Configure firewall
+        firewalld:
+          service: postgresql
+          permanent: yes
+          immediate: yes
+          state: enabled
       - name: Set Postgres required parameters
         become: yes
         become_user: postgres

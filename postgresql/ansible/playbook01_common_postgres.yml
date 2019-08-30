@@ -44,12 +44,6 @@
             - python-ipaddress
             - libsemanage-python
           state: present
-      - name: Configure firewall
-        firewalld:
-          service: postgresql
-          permanent: yes
-          immediate: yes
-          state: enabled
       # Process SSH Keys to all nodes
       - name: Prepare keys and permissions
         become: yes
