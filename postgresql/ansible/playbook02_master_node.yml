@@ -47,15 +47,6 @@
           databases: all
           method: md5
           create: yes
-      - name: Create Equator database
-        become: yes
-        become_user: postgres
-        postgresql_db:
-          name: "{{ db_name }}"
-          encoding: UTF-8
-          lc_collate: en_US.UTF-8
-          lc_ctype: en_US.UTF-8
-          conn_limit: "{{ max_connections | int }}"
       - name: Start and enable PostgreSQL service
         systemd:
           name: postgresql-11
@@ -106,7 +97,7 @@
           owner: postgres
           group: postgres
           mode: '0760'
-      - name: Create replica user, set MD5-hashed password, grant replication privs
+      - name: Create replica user, set MD5-hashed password
         become: yes
         become_user: postgres
         postgresql_user:
@@ -115,7 +106,7 @@
           encrypted: yes
           expires: infinity
           role_attr_flags: LOGIN
-      - name: Create replica user, set MD5-hashed password, grant replication privs
+      - name: Grant replication privs
         become: yes
         become_user: postgres  
         postgresql_query:
@@ -131,6 +122,15 @@
           users: "{{ replica_username }}"
           databases: replication
           method: md5
+      - name: Create Equator database
+        become: yes
+        become_user: postgres
+        postgresql_db:
+          name: "{{ db_name }}"
+          encoding: UTF-8
+          lc_collate: en_US.UTF-8
+          lc_ctype: en_US.UTF-8
+          conn_limit: "{{ max_connections | int }}"        
       - name: Restart PostgreSQL service to take new configs
         systemd:
           name: postgresql-11

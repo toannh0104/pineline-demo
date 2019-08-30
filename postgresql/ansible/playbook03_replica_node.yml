@@ -9,26 +9,16 @@
       - replica_username: 'pgreplica'
       - replica_password: 'P@ss99W0rd_replica'
     tasks:
+      - name: Temporarily stop PostgreSQL service if it has started
+        systemd:
+          name: postgresql-11
+          state: stopped
       - name: Create directory to hold WAL archive files
         file:
           path: /var/lib/pgsql/11/walarchive/
           state: directory
           owner: postgres
           mode: '0760'
-      - name: Set Postgres required parameters
-        become: yes
-        become_user: postgres
-        with_items:
-          # REPLICATION
-          - { name: 'hot_standby', value: 'on' }
-          - { name: 'hot_standby_feedback', value: 'on' }
-        postgresql_set:
-          name: "{{ item.name }}"
-          value: "{{ item.value }}"
-      - name: Temporarily stop PostgreSQL service
-        systemd:
-          name: postgresql-11
-          state: stopped
       - name: Import base backup of the primary to the standby database
         become: yes
         become_user: postgres
@@ -65,3 +55,17 @@
         systemd:
           name: postgresql-11
           state: started
+      - name: Set Postgres required parameters
+        become: yes
+        become_user: postgres
+        with_items:
+          # REPLICATION
+          - { name: 'hot_standby', value: 'on' }
+          - { name: 'hot_standby_feedback', value: 'on' }
+        postgresql_set:
+          name: "{{ item.name }}"
+          value: "{{ item.value }}"
+      - name: Start PostgreSQL service to take new configuration effect
+        systemd:
+          name: postgresql-11
+          state: restarted
