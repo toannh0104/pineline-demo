@@ -89,11 +89,12 @@
         postgresql_set:
           name: "{{ item.name }}"
           value: "{{ item.value }}"
-      - name: Copy script to copy WAL files from primary to standby
+      - name: Copy script to copy WAL files from primary to standby nodes
+        with_items: "{{ groups['pgstandby'] }}"
         copy:
           content: |
             #!/bin/sh
-            scp -o StrictHostKeyChecking=no -q $1 {{ hostvars['psql3'].ansible_host }}:/var/lib/pgsql/11/walarchive/$2
+            scp -o StrictHostKeyChecking=no -q $1 {{ item }}:/var/lib/pgsql/11/walarchive/$2
             if [ $? != 0 ]
             then
               echo 'Archiver error:'
@@ -122,9 +123,10 @@
       - name: Setup Replica node access in pg_hba
         become: yes
         become_user: postgres
+        with_items: "{{ groups['pgstandby'] }}"
         postgresql_pg_hba:
           dest: /var/lib/pgsql/11/data/pg_hba.conf
-          address: "{{ hostvars['psql3'].ansible_host }}/32"
+          address: "{{ item }}"
           contype: host
           users: "{{ replica_username }}"
           databases: replication

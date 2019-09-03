@@ -10,7 +10,6 @@
       - db_password: 'P@ss99W0rd'
       - pg_data_dir: /data/equator
       - pg_repo: 'https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
-      - pexpect_url: 'https://cbs.centos.org/kojifiles/packages/python-pexpect/4.5/1.el7/noarch/python2-pexpect-4.5-1.el7.noarch.rpm'
     tasks:
       - name: Add Postgresql Yum package repository
         yum:
@@ -23,26 +22,6 @@
             - postgresql11-libs
             - postgresql11-contrib
             - postgresql11
-          state: present  
-      - name: Install EPEL release (Make disabled by default)
-        yum:
-          name: epel-release
-          state: present
-      - name: Disable EPEL repo
-        lineinfile:
-          path: /etc/yum.repos.d/epel.repo
-          regexp: "enabled\\s*=\\s*1"
-          line: "enabled=0"
-      - name: Install required packages for Ansible
-        yum:
-          disable_gpg_check: yes
-          validate_certs: no
-          enablerepo: epel
-          name: 
-            - "{{ pexpect_url }}"
-            - python-psycopg2
-            - python-ipaddress
-            - libsemanage-python
           state: present
       # Process SSH Keys to all nodes
       - name: Prepare keys and permissions
@@ -64,16 +43,29 @@
           path: ~/.ssh/id_rsa
           owner: postgres
         register: ssh_key
+      - name: Remove IPv6 entries in hosts file
+        lineinfile:
+          path: /etc/hosts
+          regexp: '^\s*::1\s+'
+          state: absent
+      - name: Add host alias for nodes
+        with_items: "{{ groups['all'] }}"
+        when: item != inventory_hostname
+        lineinfile:
+          path: /etc/hosts
+          regexp: '.*\s+{{item}}\s*$'
+          line: '{{ hostvars[item].ansible_host }}  {{ item }}'
+          create: yes
       - name: Register public key to be trusted by all other hosts
         with_items: "{{ groups['all'] }}"
         become: yes
         become_user: postgres
-        when: hostvars[item].ansible_host != ansible_default_ipv4.address
+        when: item != inventory_hostname
         lineinfile:
           path: ~/.ssh/authorized_keys
           line: "{{ ssh_key.public_key }}"
           create: yes
-        delegate_to: "{{ hostvars[item].ansible_host }}"
+        delegate_to: "{{ item }}" # or: hostvars[item].ansible_host
         remote_user: "{{ ansible_user }}"
       # Setup SELinux flags
       - name: Set SELinux flags and keep it persistent across reboots
