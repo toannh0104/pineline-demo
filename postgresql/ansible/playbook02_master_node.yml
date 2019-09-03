@@ -53,6 +53,7 @@
           state: started
           enabled: yes
       - name: Configure firewall
+        ignore_errors: yes
         firewalld:
           service: postgresql
           permanent: yes
