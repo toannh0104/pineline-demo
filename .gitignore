@@ -6,3 +6,4 @@ cmd/goose/goose*
 postgresql/ansible/tmp.sh
 postgresql/ansible/runtest.sh
 postgresql/ansible/test.yaml
+postgresql/ansible/inventory.cfg
