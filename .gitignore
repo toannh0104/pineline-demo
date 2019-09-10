@@ -7,3 +7,4 @@ postgresql/ansible/tmp.sh
 postgresql/ansible/runtest.sh
 postgresql/ansible/test.yaml
 postgresql/ansible/inventory.cfg
+postgresql/ansible/vars/parameters.yml
