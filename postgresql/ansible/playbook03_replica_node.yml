@@ -5,9 +5,8 @@
     become_method: sudo
     gather_facts: yes
     tags: [readreplica]
-    vars:
-      - replica_username: 'pgreplica'
-      - replica_password: 'P@ss99W0rd_replica'
+    vars_files:
+      - ./vars/parameters.yml
     tasks:
       - name: Temporarily stop PostgreSQL service if it has started
         systemd:
@@ -22,13 +21,14 @@
       - name: Import base backup of the primary to the standby database
         become: yes
         become_user: postgres
+        no_log: yes
         expect:
           echo: yes
           chdir: /usr/pgsql-11/bin/
           command: "/usr/pgsql-11/bin/pg_basebackup -D /var/lib/pgsql/11/data/ -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }} -v -P"
+          creates: /var/lib/pgsql/11/data/PG_VERSION
           responses:
             (?i)password: "{{ replica_password }}"
-        no_log: no
       - name: Update recovery configuration
         with_items:
           - { regexp: "^standby_mode\\s*=", line: "standby_mode = 'on'" }
@@ -48,7 +48,7 @@
         postgresql_pg_hba:
           dest: /var/lib/pgsql/11/data/pg_hba.conf
           contype: host
-          address: samenet
+          address: '{{ db_allowed_ip_range }}'
           databases: all
           method: md5
           create: yes
@@ -69,7 +69,7 @@
           # REPLICATION
           - { name: 'hot_standby', value: 'on' }
           - { name: 'hot_standby_feedback', value: 'on' }
-          - { name: 'synchronous_commit', value: 'local' } 
+          - { name: 'synchronous_commit', value: 'local' }
         postgresql_set:
           name: "{{ item.name }}"
           value: "{{ item.value }}"

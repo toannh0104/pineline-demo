@@ -6,33 +6,11 @@
     gather_facts: yes
     tags: [master]
     vars:
-      - db_name: equator_dev
-      - db_username: eq_db
-      - db_password: 'P@ss99W0rd'
-      - pg_data_dir: /data/equator  # Not use yet. Need look in to this if datastorage is mount in different place
-      - replica_username: 'pgreplica'
-      - replica_password: 'P@ss99W0rd_replica'
-      # Caculated using https://pgtune.leopard.in.ua
-      - max_connections: 200
-      - shared_buffers: 256MB
-      - effective_cache_size: 768MB
-      - maintenance_work_mem: 64MB
-      - checkpoint_completion_target: 0.7
-      - wal_buffers: 7864kB
-      - default_statistics_target: 100
-      - random_page_cost: 1.1
-      - effective_io_concurrency: 200
-      - work_mem: 2621kB
-      - min_wal_size: 1GB
-      - max_wal_size: 2GB
-      - max_worker_processes: 2
-      - max_parallel_workers_per_gather: 1
-      - max_parallel_workers: 2
       - wal_level: replica
-      - max_wal_senders: 10
-      - wal_keep_segments: 256
       - archive_mode: 'on'
       - archive_command: /usr/pgsql-11/bin/syncwal.sh
+    vars_files:
+      - ./vars/parameters.yml
     tasks:
       - name: Initialize default
         shell: ./postgresql-11-setup initdb
@@ -116,7 +94,7 @@
           role_attr_flags: LOGIN
       - name: Grant replication privs
         become: yes
-        become_user: postgres  
+        become_user: postgres
         postgresql_query:
           db: postgres
           query: "ALTER USER {{ replica_username }} WITH REPLICATION;"
@@ -131,6 +109,14 @@
           users: "{{ replica_username }}"
           databases: replication
           method: md5
+      - name: Allow any authenticated user access to all databases.
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          contype: host
+          address: '{{ db_allowed_ip_range }}'
+          databases: all
+          method: md5
+          create: yes
       - name: Create Equator database
         become: yes
         become_user: postgres
@@ -139,7 +125,23 @@
           encoding: UTF-8
           lc_collate: en_US.UTF-8
           lc_ctype: en_US.UTF-8
-          conn_limit: "{{ max_connections | int }}"        
+          conn_limit: "{{ max_connections | int }}"
+      - name: Create master user for Equator database
+        become: yes
+        become_user: postgres
+        postgresql_user:
+          name: "{{ db_username }}"
+          password: "{{ db_password }}"
+          encrypted: yes
+          expires: infinity
+          role_attr_flags: LOGIN
+      - name: Change ownership of Equator Database
+        become: yes
+        become_user: postgres
+        postgresql_owner:
+          db: "{{ db_name }}"
+          new_owner: "{{ db_username }}"
+          obj_type: database
       - name: Restart PostgreSQL service to take new configs
         systemd:
           name: postgresql-11

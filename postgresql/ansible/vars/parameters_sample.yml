@@ -1,0 +1,24 @@
+---
+    db_name: equator_dev
+    db_username: eq_db
+    db_password: 'P@ss99W0rd'
+    replica_username: 'pgreplica'
+    replica_password: 'P@ss99W0rd_replica'
+    # Caculated using https://pgtune.leopard.in.ua
+    max_connections: 200
+    shared_buffers: 256MB
+    effective_cache_size: 768MB
+    maintenance_work_mem: 64MB
+    checkpoint_completion_target: 0.7
+    wal_buffers: 7864kB
+    default_statistics_target: 100
+    random_page_cost: 1.1
+    effective_io_concurrency: 200
+    work_mem: 2621kB
+    min_wal_size: 1GB
+    max_wal_size: 2GB
+    max_worker_processes: 2
+    max_parallel_workers_per_gather: 1
+    max_parallel_workers: 2
+    max_wal_senders: 10
+    wal_keep_segments: 256

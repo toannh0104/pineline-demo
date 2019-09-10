@@ -5,16 +5,9 @@
     become_method: sudo
     gather_facts: yes
     tags: [common]
-    vars:
-      - db_name: equator_dev
-      - db_password: 'P@ss99W0rd'
-      - pg_data_dir: /data/equator
-      - pg_repo: 'https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
+    vars_files:
+      - ./vars/parameters.yml
     tasks:
-      - name: Add Postgresql Yum package repository
-        yum:
-          name: "{{ pg_repo }}"
-          state: present
       - name: Install PostgreSQL softwares
         yum:
           name:
@@ -22,6 +15,7 @@
             - postgresql11-libs
             - postgresql11-contrib
             - postgresql11
+            - python2-psycopg2
           state: present
       # Process SSH Keys to all nodes
       - name: Prepare keys and permissions

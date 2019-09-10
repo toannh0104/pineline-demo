@@ -17,6 +17,7 @@
 - `python-ipaddress`
 - `libsemanage-python`
 
+example: `sudo yum install ~/python2-pexpect-4.5-1.el7.noarch.rpm python2-psycopg2 python-ipaddress libsemanage-python`
 
 
 # Install Postgres using Ansible playbooks
@@ -39,6 +40,9 @@
   each host record should be in the format of:
   >`hostname`   `host_ip(v4)`   `ansible_connect_description...`
   Should keep only one record in [pgmaster] group because we have only one master node for PostgreSQL
+## Install postgres package repo
+  Depends on linux distro, you have to install public postgres repository from https://download.postgresql.org
+  The guidance is also on website. For example: https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm will need to be installed for RHEL based distros. 
 ## Run Playbooks
 To install
 >`[user@psql1 ~]# sh ./install.sh`
