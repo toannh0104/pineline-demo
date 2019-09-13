@@ -83,7 +83,7 @@ pipeline {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
       choice(name: 'VaultAPIVersion', choices: '1\n2', description: 'Select Vault API Version (default 1 for pipeline library < 1.7.1)')
       choice(name: 'Action', choices: 'check\nupgrade\ndowngrade\nreset', description: 'check: report current version compare to release information.\nupgrade: Upgrade database to the latest released version without losing user data.\ndowngrade: Downgrade database to the version coresponding current running service.\nreset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
-      text(name: 'targetGooseVersion', description: 'Enter the target goose version you want to downgrade/upgrade to')
+      string(name: 'targetGooseVersion', description: 'Enter the target goose version you want to downgrade/upgrade to.\nIn case of downgrade, this number have to be lower than current.\nIn case of upgrade, this number have to greater than current.')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
    }
    options {
@@ -548,7 +548,7 @@ pipeline {
                } else {
                   msgOut = 'Database Migration status: Incomplete\n' + msgOut
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-34s|%14s |%14s |%14s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
+                     msgOut = msgOut + String.format( "| %-34s|%11s |%11s |%11s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
                   }
                   msgOut = msgOut + '|-----------------------------------|------------|------------|------------|'
                }               
