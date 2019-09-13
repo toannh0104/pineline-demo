@@ -83,6 +83,7 @@ pipeline {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
       choice(name: 'VaultAPIVersion', choices: '1\n2', description: 'Select Vault API Version (default 1 for pipeline library < 1.7.1)')
       choice(name: 'Action', choices: 'check\nupgrade\ndowngrade\nreset', description: 'check: report current version compare to release information.\nupgrade: Upgrade database to the latest released version without losing user data.\ndowngrade: Downgrade database to the version coresponding current running service.\nreset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
+      text(name: 'targetGooseVersion', description: 'Enter the target goose version you want to downgrade/upgrade to')
       text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
    }
    options {
@@ -284,7 +285,13 @@ pipeline {
                                              writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                           }
                                           // Execute goose up migration
-                                          def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
+                                          def migrationStatus = '';
+                                          if (env.targetGooseVersion == "") {
+                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
+                                          } else {
+                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up-to ${env.targetGooseVersion} > /dev/null; set -x", returnStatus: true)
+                                          }
+                                          
                                           def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           dbVersionInfo.new_version = extractVersionInfo(newVer)
                                           dbVersionInfo.expect_version = expectVer
@@ -368,7 +375,13 @@ pipeline {
                                              writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                           }
                                           // Execute goose down migration
-                                          def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down > /dev/null; set -x", returnStatus: true)
+                                          def migrationStatus = '';
+                                          if (env.targetGooseVersion == "") {
+                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down > /dev/null; set -x", returnStatus: true)
+                                          } else {
+                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down-to ${env.targetGooseVersion} > /dev/null; set -x", returnStatus: true)
+                                          }
+                                           
                                           def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           dbVersionInfo.new_version = extractVersionInfo(newVer)
                                           dbVersionInfo.expect_version = expectVer
