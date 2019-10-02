@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-// This branch [equator] is specified for Equator Development only. Local countries have to use branch [master] instead
+// This branch [master] is specified to local countries. Equator must use [equator] branch instead
 def replaceSecrets(src, keys, secretMap) {
    if(src ==null) return null
    if(keys != null && secretMap != null) {
@@ -53,6 +53,7 @@ def svcs = [
       [svcName: 'sof-bank', dbName: 'sof_bank'],
       [svcName: 'sof-card', dbName: 'sof_card'],
       [svcName: 'sof-cash', dbName: 'sof_cash'],
+      [svcName: 'sof-loan', dbName: 'sof_loan'],
       // [svcName: 'spi-engine', dbName: null],
       [svcName: 'system-user', dbName: 'system_user'],
       [svcName: 'trust-management', dbName: 'trust_management'],
@@ -83,8 +84,7 @@ pipeline {
       choice(name: 'DatabaseEnvironment', choices: 'dev\nqa\nperformance\nstaging', description: 'Select target database environment')
       choice(name: 'VaultAPIVersion', choices: '1\n2', description: 'Select Vault API Version (default 1 for pipeline library < 1.7.1)')
       choice(name: 'Action', choices: 'check\nupgrade\ndowngrade\nreset', description: 'check: report current version compare to release information.\nupgrade: Upgrade database to the latest released version without losing user data.\ndowngrade: Downgrade database to the version coresponding current running service.\nreset: Upgrade to the latest version and CLEAR ALL USER DATA(!!!)')
-      string(name: 'targetGooseVersion', description: 'Enter the target goose version you want to downgrade/upgrade to.\nIn case of downgrade, this number have to be lower than current.\nIn case of upgrade, this number have to greater than current.')
-      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
+      text(name: 'SkipServices', defaultValue: 'agent\nami-admin-portal\nami-api-gateway\nami-channel-gateway\nami-operation-portal\nbulk-upload\ncentralize-configuration\nchannel-adapter\ncustomer\ndevice-management\nfile-management\nfraud-consultant\ninventory\notp-management\npassword-center\npayment\npayroll\nprepaid-card\nreconciler\nreport\nrule-engine\nsof-bank\nsof-card\nsof-cash\nsof-loan\nsystem-user\ntrust-management\nvoucher\nworkflow', description: 'By default for safe, in upgrade or reset mode, above services will be skipped.\nIf you want to restore/upgrade specific database schemas, you need to remove them out from the list.')
    }
    options {
       buildDiscarder(logRotator(numToKeepStr:'5'))
@@ -153,6 +153,9 @@ pipeline {
                         }
                         def vaultTokenInfoJson = sh(script: "set +x; curl -s -X POST -d '{\"jwt\": \"${VAULT_TOKEN}\", \"role\": \"${env.KUBERNETES_APP_SCOPE}-${env.KUBERNETES_APP_SVC_GROUP}-read-only-${env.DatabaseEnvironment}-role\"}' -k ${vaultLeader}/v1/auth/kubernetes/login; set -x;", returnStdout: true).trim()
                         vaultTokenInfo = readJSON(text: "${vaultTokenInfoJson}")
+                        if(vaultTokenInfo && vaultTokenInfo.errors) {
+                           error "Vault processing failed, errors: ${vaultTokenInfo}"
+                        }
                      } catch (err) {
                         echo "######### ERROR: cannot fetch Vault for environment <${env.DatabaseEnvironment}> #########"
                         echo "${err.toString()}"
@@ -194,7 +197,7 @@ pipeline {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
                                     def artifact = "${svcName}-${buildInfo.build.version}"
                                     withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
-                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "production/${svcName}/${artifact}.tar.gz", force: true)
                                     }
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
@@ -243,13 +246,13 @@ pipeline {
                               if (skipList.contains(svcName) || dbName == null) {
                                  echo "######### INFO: Service ${svcName} is either skipped by request or has no associated database. No operation needed. #########"
                               } else {
-                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null]
+                                 def dbVersionInfo = [db_name: "${dbName}_${env.DatabaseEnvironment}", old_version: null, new_version: null, expect_version: null]
                                  sh(script: "curl -s -k https://${svcName}.equator-default-${env.DatabaseEnvironment}.svc:8443/${svcName}/info > ${svcName}-info.json", returnStdout: false)
                                  if (fileExists("${svcName}-info.json")) {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
                                     def artifact = "${svcName}-${buildInfo.build.version}"
                                     withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
-                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "production/${svcName}/${artifact}.tar.gz", force: true)
                                     }
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
@@ -285,13 +288,7 @@ pipeline {
                                              writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                           }
                                           // Execute goose up migration
-                                          def migrationStatus = '';
-                                          if (env.targetGooseVersion == "") {
-                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
-                                          } else {
-                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up-to ${env.targetGooseVersion} > /dev/null; set -x", returnStatus: true)
-                                          }
-                                          
+                                          def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' up > /dev/null; set -x", returnStatus: true)
                                           def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           dbVersionInfo.new_version = extractVersionInfo(newVer)
                                           dbVersionInfo.expect_version = expectVer
@@ -339,7 +336,7 @@ pipeline {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
                                     def artifact = "${svcName}-${buildInfo.build.version}"
                                     withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
-                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "production/${svcName}/${artifact}.tar.gz", force: true)
                                     }
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
@@ -375,13 +372,7 @@ pipeline {
                                              writeFile (file: "${f.name}", text: sql, encoding: "utf-8")
                                           }
                                           // Execute goose down migration
-                                          def migrationStatus = '';
-                                          if (env.targetGooseVersion == "") {
-                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down > /dev/null; set -x", returnStatus: true)
-                                          } else {
-                                             migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down-to ${env.targetGooseVersion} > /dev/null; set -x", returnStatus: true)
-                                          }
-                                           
+                                          def migrationStatus = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}?multiStatements=true&rejectReadOnly=true' down > /dev/null; set -x", returnStatus: true)
                                           def newVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           dbVersionInfo.new_version = extractVersionInfo(newVer)
                                           dbVersionInfo.expect_version = expectVer
@@ -429,7 +420,7 @@ pipeline {
                                     def buildInfo = readJSON(file: "${svcName}-info.json")
                                     def artifact = "${svcName}-${buildInfo.build.version}"
                                     withAWS(credentials:'openshift-s3-credential', endpointUrl: "${env.S3_ENDPOINT}", region: "${env.S3_REGION}") {
-                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "${env.DatabaseEnvironment}/${svcName}/${artifact}.tar.gz", force: true)
+                                       s3Download(pathStyleAccessEnabled: true, bucket: "${env.S3_APPCFG_BUCKET}", file: "${artifact}.tar.gz", path: "production/${svcName}/${artifact}.tar.gz", force: true)
                                     }
                                     sh "/bin/tar -zxvf ${artifact}.tar.gz -C . > /dev/null"
                                     // Check if service has DB script
@@ -457,7 +448,6 @@ pipeline {
                                           def oldVer = sh (script: "set +x; ${WORKSPACE}/${env.TOOL_HOME_PATH}/goose mysql '${DbCred}@tcp(${dbUrl})/${dbName}_${env.DatabaseEnvironment}' version 2>&1; set -x", returnStdout: true).trim()
                                           echo "Old Verion: ${oldVer}"
                                           dbVersionInfo.old_version = extractVersionInfo(oldVer)
-
                                           dir ("create-databases") {
                                              def files = findFiles(glob: '*.sql')
                                              files.each { f ->
@@ -548,7 +538,7 @@ pipeline {
                } else {
                   msgOut = 'Database Migration status: Incomplete\n' + msgOut
                   versionChanges.each { i ->
-                     msgOut = msgOut + String.format( "| %-34s|%11s |%11s |%11s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
+                     msgOut = msgOut + String.format( "| %-34s|%14s |%14s |%14s |\n", i.db_name, i.old_version, i.new_version, i.expect_version)
                   }
                   msgOut = msgOut + '|-----------------------------------|------------|------------|------------|'
                }               
