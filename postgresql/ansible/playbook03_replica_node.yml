@@ -1,0 +1,77 @@
+---
+  - name: Read-replica nodes setup
+    hosts: pgread
+    become: yes
+    become_method: sudo
+    gather_facts: yes
+    tags: [readreplica]
+    tasks:
+      - name: Temporarily stop PostgreSQL service if it has started
+        systemd:
+          name: postgresql-11
+          state: stopped
+      - name: Create directory to hold WAL archive files
+        file:
+          path: /var/lib/pgsql/11/walarchive/
+          state: directory
+          owner: postgres
+          mode: '0760'
+      - name: Import base backup of the primary to the standby database
+        become: yes
+        become_user: postgres
+        no_log: yes
+        expect:
+          echo: yes
+          chdir: /usr/pgsql-11/bin/
+          command: "/usr/pgsql-11/bin/pg_basebackup -D /var/lib/pgsql/11/data/ -h {{ hostvars[groups['pgmaster'][0]].ansible_host }} -p 5432 -U {{ replica_username }} -v -P"
+          creates: /var/lib/pgsql/11/data/PG_VERSION
+          responses:
+            (?i)password: "{{ replica_password }}"
+      - name: Update recovery configuration
+        with_items:
+          - { regexp: "^standby_mode\\s*=", line: "standby_mode = 'on'" }
+          - { regexp: "^primary_conninfo\\s*=", line: "primary_conninfo = 'user={{ replica_username }} password=''{{ replica_password }}'' host={{ hostvars[groups['pgmaster'][0]].ansible_host }} port=5432 target_session_attrs=any application_name={{ inventory_hostname }}'" }
+          - { regexp: "^restore_command\\s*=", line: "restore_command = 'test -f /var/lib/pgsql/11/walarchive/%f && cp /var/lib/pgsql/11/walarchive/%f %p'" }
+          - { regexp: "^archive_cleanup_command\\s*=", line: "archive_cleanup_command = '/usr/pgsql-11/bin/pg_archivecleanup /var/lib/pgsql/11/walarchive %r'" }
+          - { regexp: "^trigger_file\\s*=", line: "trigger_file = '/var/lib/pgsql/11/data/finish.replication'" }
+          - { regexp: "^recovery_target_timeline\\s*=", line: "recovery_target_timeline = 'latest'" }
+        lineinfile:
+          path: /var/lib/pgsql/11/data/recovery.conf
+          regexp: "{{ item.regexp }}"
+          line: "{{ item.line }}"
+          create: yes
+          owner: postgres
+          group: postgres
+      - name: Allow any authenticated user access to all databases.
+        postgresql_pg_hba:
+          dest: /var/lib/pgsql/11/data/pg_hba.conf
+          contype: host
+          address: '{{ db_allowed_ip_range }}'
+          databases: all
+          method: md5
+          create: yes
+      - name: Start PostgreSQL service
+        systemd:
+          name: postgresql-11
+          state: started
+      - name: Configure firewall
+        firewalld:
+          service: postgresql
+          permanent: yes
+          immediate: yes
+          state: enabled
+      - name: Set Postgres required parameters
+        become: yes
+        become_user: postgres
+        with_items:
+          # REPLICATION
+          - { name: 'hot_standby', value: 'on' }
+          - { name: 'hot_standby_feedback', value: 'on' }
+          - { name: 'synchronous_commit', value: 'local' }
+        postgresql_set:
+          name: "{{ item.name }}"
+          value: "{{ item.value }}"
+      - name: Start PostgreSQL service to take new configuration effect
+        systemd:
+          name: postgresql-11
+          state: restarted
