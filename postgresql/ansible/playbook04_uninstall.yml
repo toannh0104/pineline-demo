@@ -1,0 +1,25 @@
+---
+    - name: Uninstall
+      hosts: all
+      become: yes
+      become_method: sudo
+      gather_facts: yes
+      tags: [common]
+      tasks:
+        - name: Remove Software packages
+          yum:
+            name:
+              - postgresql11-contrib
+              - postgresql11-server
+              - postgresql11-libs
+              - postgresql11
+            state: absent
+        - name: Delete data folders
+          file:
+            state: absent
+            path: "/var/lib/pgsql"
+        - name: Delete lib folders
+          file:
+            state: absent
+            path: "/usr/pgsql-11/"
+          

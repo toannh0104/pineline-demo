@@ -1,0 +1,77 @@
+---
+  - name: Common prerequsites
+    hosts: all
+    become: yes
+    become_method: sudo
+    gather_facts: yes
+    tags: [common]
+    tasks:
+      - name: Install PostgreSQL softwares
+        yum:
+          name:
+            - postgresql11-server
+            - postgresql11-libs
+            - postgresql11-contrib
+            - postgresql11
+            - python2-psycopg2
+          state: present
+      # Process SSH Keys to all nodes
+      - name: Prepare keys and permissions
+        become: yes
+        become_user: postgres
+        with_items:
+           - { name: '', mode: '0700', state: directory }
+           - { name: /authorized_keys, mode: '0644', state: touch }
+           - { name: /known_hosts, mode: '0644', state: touch }
+        file:
+          path: "~/.ssh{{ item.name }}"
+          owner: postgres
+          mode: "{{ item.mode }}"
+          state: "{{ item.state }}"
+      - name: Generate SSH key pair
+        become: yes
+        become_user: postgres
+        openssh_keypair:
+          path: ~/.ssh/id_rsa
+          owner: postgres
+        register: ssh_key
+      - name: Remove IPv6 entries in hosts file
+        lineinfile:
+          path: /etc/hosts
+          regexp: '^\s*::1\s+'
+          state: absent
+      - name: Add host alias for nodes
+        with_items: "{{ groups['all'] }}"
+        when: item != inventory_hostname
+        lineinfile:
+          path: /etc/hosts
+          regexp: '.*\s+{{item}}\s*$'
+          line: '{{ hostvars[item].ansible_host }}  {{ item }}'
+          create: yes
+      - name: Register public key to be trusted by all other hosts
+        with_items: "{{ groups['all'] }}"
+        become: yes
+        become_user: postgres
+        when: item != inventory_hostname
+        lineinfile:
+          path: ~/.ssh/authorized_keys
+          line: "{{ ssh_key.public_key }}"
+          create: yes
+        delegate_to: "{{ item }}" # or: hostvars[item].ansible_host
+        remote_user: "{{ ansible_user }}"
+      # Setup SELinux flags
+      - name: Set SELinux flags and keep it persistent across reboots
+        with_items:
+          - postgresql_can_rsync
+          - allow_user_postgresql_connect
+        seboolean:
+          name: "{{ item }}"
+          state: yes
+          persistent: yes
+      - name: Restore Context for SSH keys access
+        become: yes
+        become_user: postgres
+        shell: 'restorecon -R -v ~/.ssh; chcon -R -v system_u:object_r:usr_t:s0 ~/.ssh/'
+        args:
+          chdir: ~/
+          removes: ~/.ssh/authorized_keys
