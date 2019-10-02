@@ -5,8 +5,6 @@
     become_method: sudo
     gather_facts: yes
     tags: [readreplica]
-    vars_files:
-      - ./vars/parameters.yml
     tasks:
       - name: Temporarily stop PostgreSQL service if it has started
         systemd:

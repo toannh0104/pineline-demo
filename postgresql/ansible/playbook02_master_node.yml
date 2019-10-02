@@ -9,8 +9,6 @@
       - wal_level: replica
       - archive_mode: 'on'
       - archive_command: /usr/pgsql-11/bin/syncwal.sh
-    vars_files:
-      - ./vars/parameters.yml
     tasks:
       - name: Initialize default
         shell: ./postgresql-11-setup initdb
@@ -109,7 +107,7 @@
           users: "{{ replica_username }}"
           databases: replication
           method: md5
-      - name: Allow any authenticated user access to all databases.
+      - name: Allow any authenticated user with IP range access to all databases.
         postgresql_pg_hba:
           dest: /var/lib/pgsql/11/data/pg_hba.conf
           contype: host
@@ -117,15 +115,6 @@
           databases: all
           method: md5
           create: yes
-      - name: Create Equator database
-        become: yes
-        become_user: postgres
-        postgresql_db:
-          name: "{{ db_name }}"
-          encoding: UTF-8
-          lc_collate: en_US.UTF-8
-          lc_ctype: en_US.UTF-8
-          conn_limit: "{{ max_connections | int }}"
       - name: Create master user for Equator database
         become: yes
         become_user: postgres
@@ -134,7 +123,17 @@
           password: "{{ db_password }}"
           encrypted: yes
           expires: infinity
-          role_attr_flags: LOGIN
+          role_attr_flags: LOGIN    
+      - name: Create Equator database
+        become: yes
+        become_user: postgres
+        postgresql_db:
+          name: "{{ db_name }}"
+          encoding: UTF-8
+          lc_collate: en_US.UTF-8
+          lc_ctype: en_US.UTF-8
+          owner: "{{ db_username }}"
+          conn_limit: "{{ max_connections | int }}"
       - name: Change ownership of Equator Database
         become: yes
         become_user: postgres

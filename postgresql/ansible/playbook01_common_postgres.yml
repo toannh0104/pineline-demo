@@ -5,8 +5,6 @@
     become_method: sudo
     gather_facts: yes
     tags: [common]
-    vars_files:
-      - ./vars/parameters.yml
     tasks:
       - name: Install PostgreSQL softwares
         yum:
